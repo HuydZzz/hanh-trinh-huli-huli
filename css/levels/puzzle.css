@@ -1,0 +1,581 @@
+/* =====================================================================
+   Màn 4 · Ghép hình (puzzle)
+   Mọi selector nằm dưới .level[data-level="puzzle"].
+   Kích thước tính theo cqw/cqh của .level-body (container-type: size).
+   Ảnh luôn là khung DỌC 9:16 (bảng, từng mảnh, ảnh gốc, lớp xem ảnh gốc).
+   Ảnh thật (3:4, 2:3, 9:16...) được cắt kiểu cover, giữ phần trên giữa
+   (thường là mặt hai đứa) bằng --pz-focus.
+   ===================================================================== */
+
+.level[data-level="puzzle"] .puzzle {
+  --pz-move: 300ms; /* khớp MOVE_MS trong puzzle.js */
+  --pz-ease: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --pz-focus: center 30%;
+  --pz-row-gap: clamp(8px, 1.8cqh, 16px);
+  --pz-pad: clamp(8px, 2.4cqw, 14px);
+  --pz-e: calc(var(--pz-pad) + var(--stroke)); /* padding + viền của khung bảng (mỗi bên) */
+  /* Điện thoại dọc: hàng trên thấp (ảnh gốc 9:16 nhỏ + bộ đếm), bảng lấy hết phần cao còn lại.
+     Bảng bị giới hạn bởi chiều CAO nên chiều rộng suy ra từ chiều cao theo tỉ lệ 9:16. */
+  --pz-thumb-h: clamp(56px, 12.5cqh, 100px);
+  --pz-thumb-w: calc(var(--pz-thumb-h) * 9 / 16);
+  --pz-top-h: calc(var(--pz-thumb-h) + 26px);
+  --pz-board: min(
+    calc(100cqw - 8px),
+    calc((100cqh - var(--pz-top-h) - var(--pz-row-gap) - 8px - 2 * var(--pz-e)) * 9 / 16 + 2 * var(--pz-e)),
+    440px
+  );
+  --pz-board-h: calc((var(--pz-board) - 2 * var(--pz-e)) * 16 / 9 + 2 * var(--pz-e));
+  --pz-mascot: clamp(42px, calc(var(--pz-thumb-h) * 0.8), 66px);
+  --pz-tile-r: 12px 14px 11px 15px / 14px 11px 15px 12px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pz-row-gap);
+}
+
+/* ---------------- Hàng trên: ảnh gốc + đếm ---------------- */
+.level[data-level="puzzle"] .puzzle-top {
+  flex: none;
+  width: var(--pz-board);
+  height: var(--pz-top-h);
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 5.4cqw, 26px);
+  padding: 0 0 12px clamp(12px, 3.4cqw, 16px);
+}
+
+/* Ảnh gốc: khung ôm sát ảnh 9:16 (kích thước lấy từ .puzzle-ref__img) */
+.level[data-level="puzzle"] .puzzle-ref {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 3px;
+  background: #fff;
+  border: var(--stroke-sm) solid var(--ink);
+  border-radius: 14px 16px 13px 17px / 16px 13px 17px 14px;
+  box-shadow: inset 0 -3px 0 rgba(58, 35, 64, 0.06), 0 4px 0 var(--ink), 0 10px 16px rgba(58, 35, 64, 0.16);
+  rotate: -4deg;
+  cursor: zoom-in;
+  touch-action: none;
+  transition: scale 180ms var(--ease-bounce), rotate 180ms var(--ease-out);
+}
+.level[data-level="puzzle"] .puzzle-ref__img {
+  position: relative;
+  display: block;
+  width: var(--pz-thumb-w);
+  height: auto;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 7px 9px 6px 10px / 9px 6px 10px 7px;
+  background: var(--photo) var(--pz-focus) / cover no-repeat, var(--pink-100);
+  box-shadow: inset 0 0 0 2px rgba(58, 35, 64, 0.14);
+}
+.level[data-level="puzzle"] .puzzle-ref__tag {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 62%;
+  rotate: 5deg;
+  padding: 1px 8px 3px;
+  border: 2.5px solid var(--ink);
+  border-radius: 9px 11px 8px 12px / 11px 8px 12px 9px;
+  background: linear-gradient(180deg, var(--mint-200), var(--mint-400) 62%, var(--mint-500));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 3px 0 var(--ink);
+  font-size: clamp(10px, calc(var(--pz-thumb-w) * 0.2), 13px);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.level[data-level="puzzle"] .puzzle-ref__grid {
+  position: absolute;
+  inset: 0;
+  display: none;
+  grid-template-columns: repeat(var(--g), 1fr);
+  grid-template-rows: repeat(var(--g), 1fr);
+  gap: 2px;
+  padding: 3px;
+}
+.level[data-level="puzzle"] .puzzle-ref__grid span {
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(7px, calc(var(--pz-thumb-w) * 0.2), 12px);
+  line-height: 1;
+  color: var(--ink);
+}
+@media (hover: hover) {
+  .level[data-level="puzzle"] .puzzle-ref:hover { scale: 1.05; rotate: -2deg; }
+}
+.level[data-level="puzzle"] .puzzle-ref.is-peeking { scale: 1.08; rotate: 0deg; }
+
+.level[data-level="puzzle"] .puzzle-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 5px 14px 6px;
+  background: #fff;
+  border: var(--stroke-sm) solid var(--ink);
+  border-radius: var(--r-wobble-sm);
+  box-shadow: inset 0 -4px 0 rgba(58, 35, 64, 0.07), 0 4px 0 var(--ink);
+  rotate: 2deg;
+  transition: background-color 250ms ease;
+}
+.level[data-level="puzzle"] .puzzle-count__label {
+  font-weight: 800;
+  font-size: clamp(11px, calc(var(--pz-top-h) * 0.135), 14px);
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.level[data-level="puzzle"] .puzzle-count__val {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: clamp(20px, calc(var(--pz-top-h) * 0.32), 32px);
+  line-height: 1.15;
+  color: var(--pink-300);
+}
+.level[data-level="puzzle"] .puzzle-count__total { color: #fff; font-size: 0.72em; margin-left: 1px; }
+.level[data-level="puzzle"] .puzzle-count.is-full { background: var(--mint-100); }
+.level[data-level="puzzle"] .puzzle-count.is-full .puzzle-count__val { color: var(--mint-300); }
+.level[data-level="puzzle"] .puzzle-count.is-bump { animation: puzzle-bump 420ms var(--ease-bounce); }
+
+/* ---------------- Khung bảng ---------------- */
+.level[data-level="puzzle"] .puzzle-board {
+  position: relative;
+  flex: none;
+  width: var(--pz-board);
+  padding: var(--pz-pad);
+  background: linear-gradient(180deg, #fff 0%, var(--cream) 38%, var(--cream-2) 100%);
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--r-panel);
+  box-shadow:
+    inset 0 -6px 0 rgba(58, 35, 64, 0.06),
+    inset 0 4px 0 #fff,
+    0 var(--lip) 0 var(--ink),
+    var(--shadow-soft);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.level[data-level="puzzle"] .puzzle-board.is-solved { animation: puzzle-board-win 620ms var(--ease-bounce); }
+
+.level[data-level="puzzle"] .puzzle-mascot {
+  position: absolute;
+  right: 5%;
+  top: 0;
+  z-index: 2;
+  width: var(--pz-mascot);
+  height: var(--pz-mascot);
+  translate: 0 calc(-100% + 7px);
+  rotate: 7deg;
+  pointer-events: none;
+}
+.level[data-level="puzzle"] .puzzle-mascot > .mascot { width: 100%; height: 100%; }
+.level[data-level="puzzle"] .puzzle-mascot.is-jump { animation: puzzle-mascot-jump 620ms var(--ease-bounce); }
+
+/* Khay chứa mảnh (lõm xuống, viền mực) */
+.level[data-level="puzzle"] .puzzle-tray {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 16px 19px 15px 20px / 19px 15px 20px 16px;
+  background:
+    radial-gradient(circle, rgba(45, 181, 144, 0.22) 1.6px, transparent 2.2px) 0 0 / 16px 16px,
+    linear-gradient(180deg, var(--mint-100), var(--mint-50));
+  box-shadow: 0 0 0 3px var(--ink), inset 0 5px 0 rgba(58, 35, 64, 0.1);
+}
+.level[data-level="puzzle"] .puzzle-grid {
+  --gap: clamp(5px, 1.7cqw, 9px);
+  --inset: clamp(5px, 1.5cqw, 8px);
+  position: absolute;
+  inset: var(--inset);
+  transition: inset 380ms var(--ease-out);
+}
+
+/* Ô trống (lỗ) dưới mảnh ghép, lộ ra khi nhấc mảnh lên.
+   Mỗi ô = 1/g bề ngang và 1/g bề cao của lưới dọc 9:16, nên mảnh cũng dọc
+   (đúng 9:16 khi ảnh liền, gần 9:16 khi có khe hở). */
+.level[data-level="puzzle"] .puzzle-socket,
+.level[data-level="puzzle"] .puzzle-tile {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc((100% - (var(--g) - 1) * var(--gap)) / var(--g));
+  height: calc((100% - (var(--g) - 1) * var(--gap)) / var(--g));
+}
+.level[data-level="puzzle"] .puzzle-socket {
+  translate: calc(var(--c) * (100% + var(--gap))) calc(var(--r) * (100% + var(--gap)));
+  border-radius: var(--pz-tile-r);
+  background: rgba(45, 181, 144, 0.16);
+  box-shadow: inset 0 4px 0 rgba(58, 35, 64, 0.12), inset 0 0 0 2px rgba(58, 35, 64, 0.08);
+  transition: width 380ms var(--ease-out), height 380ms var(--ease-out), translate 380ms var(--ease-out), opacity 250ms ease;
+}
+
+/* ---------------- Mảnh ghép ---------------- */
+.level[data-level="puzzle"] .puzzle-tile {
+  appearance: none;
+  z-index: 1;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  translate:
+    calc(var(--c) * (100% + var(--gap)) + var(--dx, 0px))
+    calc(var(--r) * (100% + var(--gap)) + var(--dy, 0px) - var(--lift, 0px));
+  scale: 1;
+  rotate: 0deg;
+  transition:
+    translate var(--pz-move) var(--pz-ease) var(--delay, 0ms),
+    width 380ms var(--ease-out),
+    height 380ms var(--ease-out),
+    scale 180ms var(--ease-out),
+    rotate 200ms var(--ease-out);
+}
+.level[data-level="puzzle"] .puzzle-tile__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--pz-tile-r);
+  background: var(--cream);
+  box-shadow: 0 4px 0 var(--ink), 0 7px 10px rgba(58, 35, 64, 0.14);
+  transition: border-radius 380ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+/* Viền mực + bóng kẹo phủ lên ảnh */
+.level[data-level="puzzle"] .puzzle-tile__face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: var(--stroke-sm) solid var(--ink);
+  border-radius: inherit;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.5), inset 0 -4px 0 rgba(58, 35, 64, 0.18);
+  pointer-events: none;
+  transition: opacity 300ms ease, border-color 200ms ease;
+}
+/* Chớp sáng khi mảnh vào đúng chỗ */
+.level[data-level="puzzle"] .puzzle-tile__face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+.level[data-level="puzzle"] .puzzle-tile__img {
+  position: absolute;
+  left: calc(var(--pc) * -100%);
+  top: calc(var(--pr) * -100%);
+  width: calc(var(--g) * 100%);
+  height: calc(var(--g) * 100%);
+  background: var(--photo) var(--pz-focus) / cover no-repeat, var(--pink-100);
+  pointer-events: none;
+}
+.level[data-level="puzzle"] .puzzle-tile__num {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  font-size: calc(var(--pz-board) * 0.38 / var(--g));
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Vòng chọn (hồng, nhịp) và con trỏ bàn phím (vàng) */
+.level[data-level="puzzle"] .puzzle-tile::before,
+.level[data-level="puzzle"] .puzzle-tile::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 18px 21px 17px 22px / 21px 17px 22px 18px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.level[data-level="puzzle"] .puzzle-tile::after {
+  inset: -8px;
+  z-index: -1;
+  border: 4px solid var(--pink-400);
+  box-shadow: 0 0 16px 4px rgba(255, 127, 168, 0.6), inset 0 0 10px 2px rgba(255, 127, 168, 0.35);
+}
+.level[data-level="puzzle"] .puzzle-tile::before {
+  inset: -4px;
+  z-index: 3;
+  border-radius: 14px 17px 13px 18px / 17px 13px 18px 14px;
+  border: 4px solid var(--butter-400);
+  box-shadow: 0 0 0 2.5px var(--ink), inset 0 0 0 2.5px var(--ink);
+}
+
+.level[data-level="puzzle"] .puzzle-board.is-playing .puzzle-tile { cursor: grab; }
+@media (hover: hover) {
+  .level[data-level="puzzle"] .puzzle-board.is-playing .puzzle-tile:hover:not(.is-dragging):not(.is-selected) { --lift: 3px; }
+  .level[data-level="puzzle"] .puzzle-board.is-playing .puzzle-tile:hover:not(.is-dragging):not(.is-selected) .puzzle-tile__face {
+    box-shadow: 0 6px 0 var(--ink), 0 10px 14px rgba(58, 35, 64, 0.18);
+  }
+}
+.level[data-level="puzzle"] .puzzle-tile.is-pressing { scale: 0.95; }
+.level[data-level="puzzle"] .puzzle-tile.is-moving { z-index: 4; }
+
+.level[data-level="puzzle"] .puzzle-tile.is-selected {
+  z-index: 3;
+  --lift: 6px;
+  scale: 1.06;
+  rotate: -2.5deg;
+}
+.level[data-level="puzzle"] .puzzle-tile.is-selected::after { opacity: 1; animation: puzzle-ring 1.1s ease-in-out infinite; }
+.level[data-level="puzzle"] .puzzle-tile.is-selected .puzzle-tile__face {
+  box-shadow: 0 8px 0 var(--ink), 0 16px 18px rgba(58, 35, 64, 0.22);
+}
+
+.level[data-level="puzzle"] .puzzle-tile.is-dragging {
+  z-index: 6;
+  cursor: grabbing;
+  scale: 1.1;
+  rotate: 4deg;
+  transition: width 380ms var(--ease-out), height 380ms var(--ease-out), scale 160ms var(--ease-bounce), rotate 200ms var(--ease-out);
+}
+.level[data-level="puzzle"] .puzzle-tile.is-dragging .puzzle-tile__face {
+  box-shadow: 0 6px 0 var(--ink), 0 22px 26px rgba(58, 35, 64, 0.3);
+}
+
+.level[data-level="puzzle"] .puzzle-tile.is-target { scale: 0.92; }
+.level[data-level="puzzle"] .puzzle-tile.is-target::after {
+  opacity: 1;
+  border-color: var(--mint-400);
+  box-shadow: 0 0 14px 3px rgba(77, 208, 171, 0.55);
+}
+
+.level[data-level="puzzle"] .puzzle-tile.is-cursor::before { opacity: 1; }
+.level[data-level="puzzle"] .puzzle-tile.is-cursor { z-index: 2; }
+.level[data-level="puzzle"] .puzzle-tile.is-cursor.is-selected { z-index: 3; }
+
+.level[data-level="puzzle"] .puzzle-tile.is-hop .puzzle-tile__face { animation: puzzle-hop var(--pz-move) var(--ease-out); }
+.level[data-level="puzzle"] .puzzle-tile.is-pop .puzzle-tile__face { animation: puzzle-pop 480ms var(--ease-bounce); }
+.level[data-level="puzzle"] .puzzle-tile.is-pop .puzzle-tile__face::before { animation: puzzle-flash 480ms ease-out; }
+
+/* ---------------- Ảnh nguyên vẹn (trước khi xáo + khi thắng) ---------------- */
+.level[data-level="puzzle"] .puzzle-tray.is-whole { overflow: hidden; }
+.level[data-level="puzzle"] .is-whole .puzzle-grid { --gap: 0px; --inset: 0px; }
+.level[data-level="puzzle"] .is-whole .puzzle-socket { opacity: 0; }
+.level[data-level="puzzle"] .is-whole .puzzle-tile__face { border-radius: 0; box-shadow: none; }
+.level[data-level="puzzle"] .is-whole .puzzle-tile__face::after { opacity: 0; }
+
+/* ---------------- Xem ảnh gốc + vệt sáng ---------------- */
+.level[data-level="puzzle"] .puzzle-peek {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border-radius: inherit;
+  background: var(--photo) var(--pz-focus) / cover no-repeat, var(--pink-100);
+  box-shadow: 0 0 0 3px var(--ink), 0 12px 24px rgba(58, 35, 64, 0.25);
+  opacity: 0;
+  scale: 0.94;
+  pointer-events: none;
+  transition: opacity 160ms ease, scale 220ms var(--ease-bounce);
+}
+.level[data-level="puzzle"] .puzzle-tray.is-peek .puzzle-peek { opacity: 1; scale: 1; }
+/* Ảnh nguyên: phủ ảnh liền một tấm lên trên (sau khi khe hở khép) để không lộ đường nối */
+.level[data-level="puzzle"] .puzzle-tray.is-whole .puzzle-peek {
+  opacity: 1;
+  scale: 1;
+  box-shadow: none;
+  transition: opacity 220ms ease 380ms, scale 1ms linear 380ms;
+}
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-peek { display: none; }
+
+.level[data-level="puzzle"] .puzzle-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.level[data-level="puzzle"] .puzzle-shine::before {
+  content: "";
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: 0;
+  width: 46%;
+  background:
+    linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.35) 30%, rgba(255, 255, 255, 0.95) 46%, #fff 50%, rgba(255, 255, 255, 0.95) 54%, rgba(255, 255, 255, 0.35) 70%, rgba(255, 255, 255, 0) 100%);
+  rotate: 16deg;
+  translate: -130% 0;
+  opacity: 0;
+}
+.level[data-level="puzzle"] .puzzle-shine::after {
+  content: "";
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: 0;
+  width: 12%;
+  background: rgba(255, 255, 255, 0.7);
+  rotate: 16deg;
+  translate: -400% 0;
+  opacity: 0;
+}
+.level[data-level="puzzle"] .puzzle-shine.is-on::before { animation: puzzle-shine 820ms var(--ease-in-out) both; }
+.level[data-level="puzzle"] .puzzle-shine.is-on::after { animation: puzzle-shine-thin 820ms var(--ease-in-out) 90ms both; }
+
+/* ---------------- Ảnh thiếu: mảnh đánh số ---------------- */
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-tile__img { display: none; }
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-tile__num { display: grid; }
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-tile__face { background: linear-gradient(180deg, #fff 0%, var(--tone) 70%); }
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-ref { cursor: default; }
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-ref__img { background: var(--pink-100); }
+.level[data-level="puzzle"] .puzzle.is-missing .puzzle-ref__grid { display: grid; }
+
+/* ---------------- Keyframes ---------------- */
+@keyframes puzzle-hop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.09) rotate(-2deg); }
+  100% { transform: scale(1); }
+}
+@keyframes puzzle-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.15) rotate(-3deg); }
+  65% { transform: scale(0.95) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes puzzle-flash {
+  0% { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+@keyframes puzzle-ring {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.035); }
+}
+@keyframes puzzle-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+@keyframes puzzle-shine {
+  0% { translate: -130% 0; opacity: 0; }
+  12% { opacity: 0.8; }
+  88% { opacity: 0.8; }
+  100% { translate: 300% 0; opacity: 0; }
+}
+@keyframes puzzle-shine-thin {
+  0% { translate: -400% 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { translate: 1000% 0; opacity: 0; }
+}
+@keyframes puzzle-board-win {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.035) rotate(-0.6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes puzzle-mascot-jump {
+  0% { transform: translateY(0) scale(1, 1); }
+  22% { transform: translateY(0) scale(1.12, 0.86); }
+  52% { transform: translateY(-30%) scale(0.94, 1.08); }
+  80% { transform: translateY(0) scale(1.06, 0.95); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* ---------------- Vùng chơi không quá dọc (điện thoại nhỏ có thanh Safari, máy tính) ----------------
+   Bảng 9:16 rất cao, nên chỉ cần vùng chơi rộng hơn ~0.64 lần chiều cao là xếp ảnh gốc
+   + bộ đếm + mascot thành cột bên trái sẽ cho bảng to hơn (bảng cao gần hết vùng chơi).
+   Dưới ngưỡng đó (điện thoại dọc thường) thì hàng trên thấp cho bảng to hơn. */
+@container (min-aspect-ratio: 16 / 25) {
+  .level[data-level="puzzle"] .puzzle {
+    --pz-col-gap: clamp(12px, 3.4cqw, 22px);
+    /* bề rộng bảng nếu cho bảng cao hết vùng chơi */
+    --pz-fit: calc((100cqh - 12px - 2 * var(--pz-e)) * 9 / 16 + 2 * var(--pz-e));
+    /* cột bên trái dùng phần ngang còn thừa (tối thiểu vẫn đủ chỗ cho bộ đếm) */
+    --pz-col: clamp(78px, calc(100cqw - var(--pz-fit) - var(--pz-col-gap) - 6px), 112px);
+    --pz-board: min(var(--pz-fit), calc(100cqw - var(--pz-col) - var(--pz-col-gap) - 6px), 440px);
+    /* ảnh gốc: to nhất mà cột còn đủ chỗ cho bộ đếm + mascot ở dưới */
+    --pz-thumb-w: max(34px, min(calc(var(--pz-col) - 22px), calc((var(--pz-board-h) - 196px) * 9 / 16)));
+    --pz-thumb-h: calc(var(--pz-thumb-w) * 16 / 9);
+    --pz-mascot: clamp(44px, calc(var(--pz-col) * 0.62), 68px);
+    flex-direction: row;
+    gap: var(--pz-col-gap);
+  }
+  .level[data-level="puzzle"] .puzzle-top {
+    width: var(--pz-col);
+    height: var(--pz-board-h);
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: clamp(24px, 5cqh, 34px);
+    /* chừa đáy cột cho mascot; bộ đếm nằm giữa ảnh gốc và mascot */
+    padding: 8px 0 calc(var(--pz-mascot) + 6px);
+  }
+  .level[data-level="puzzle"] .puzzle-count {
+    width: calc(var(--pz-col) + 4px);
+    margin-block: auto;
+    padding: 4px 4px 5px;
+    rotate: -3deg;
+  }
+  .level[data-level="puzzle"] .puzzle-count__label { font-size: clamp(10px, calc(var(--pz-col) * 0.13), 13px); letter-spacing: 0.02em; }
+  .level[data-level="puzzle"] .puzzle-count__val { font-size: clamp(20px, calc(var(--pz-col) * 0.32), 30px); }
+  /* mascot đứng ở đáy cột, cạnh bảng */
+  .level[data-level="puzzle"] .puzzle-mascot {
+    top: auto;
+    bottom: 0;
+    right: calc(100% + var(--stroke) + var(--pz-col-gap) + (var(--pz-col) - var(--pz-mascot)) / 2);
+    translate: 0 0;
+    rotate: -6deg;
+  }
+}
+/* Quá thấp để mascot đứng vừa trong cột thì ẩn mascot, nhường chỗ cho ảnh gốc */
+@container (min-aspect-ratio: 16 / 25) and (max-height: 280px) {
+  .level[data-level="puzzle"] .puzzle {
+    --pz-thumb-w: max(30px, min(calc(var(--pz-col) - 22px), calc((var(--pz-board-h) - 128px) * 9 / 16)));
+  }
+  .level[data-level="puzzle"] .puzzle-top { padding-bottom: 0; }
+  .level[data-level="puzzle"] .puzzle-mascot { display: none; }
+}
+
+/* Chữ khen bay lên khi thắng: câu dài thì xuống dòng thay vì tràn khỏi màn hình */
+.float-text.puzzle-float {
+  width: max-content;
+  max-width: min(86vw, 440px);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level[data-level="puzzle"] .puzzle { --pz-move: 1ms; }
+  .level[data-level="puzzle"] .puzzle-tile,
+  .level[data-level="puzzle"] .puzzle-socket,
+  .level[data-level="puzzle"] .puzzle-grid,
+  .level[data-level="puzzle"] .puzzle-tile__face,
+  .level[data-level="puzzle"] .puzzle-ref,
+  .level[data-level="puzzle"] .puzzle-peek { transition-duration: 1ms !important; }
+  .level[data-level="puzzle"] .puzzle-tile::after,
+  .level[data-level="puzzle"] .puzzle-tile__face,
+  .level[data-level="puzzle"] .puzzle-tile__face::before,
+  .level[data-level="puzzle"] .puzzle-count,
+  .level[data-level="puzzle"] .puzzle-board,
+  .level[data-level="puzzle"] .puzzle-mascot,
+  .level[data-level="puzzle"] .puzzle-shine::before,
+  .level[data-level="puzzle"] .puzzle-shine::after { animation: none !important; }
+}

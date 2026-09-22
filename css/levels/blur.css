@@ -1,0 +1,411 @@
+/* =====================================================================
+   Màn 2 · Đoán ảnh mờ (key: blur)
+   Mọi selector đều nằm dưới .level[data-level="blur"].
+   ===================================================================== */
+
+.level[data-level="blur"] .blur {
+  --blur-mascot-size: 56px;
+  --blur-gap: clamp(8px, 1.9cqh, 16px);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--blur-gap);
+}
+
+/* ---------- Photo stage (takes all the flexible space) ---------- */
+.level[data-level="blur"] .blur-stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 120px;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+.level[data-level="blur"] .blur-holder {
+  display: grid;
+  place-items: center;
+  will-change: transform;
+}
+
+/* Polaroid: white frame, ink outline, slight tilt, solid ink lip */
+.level[data-level="blur"] .blur-frame {
+  --ratio: 0.5625; /* portrait 9:16, same as every photo frame in the game */
+  --tilt: -2.4deg;
+  --bw: 4px;
+  --wb: 3px;
+  --pad: clamp(6px, 2.6cqmin, 13px);
+  --strip: clamp(24px, 8.6cqh, 46px);
+  --room-y: 34px;
+  --room-x: 40px;
+  --avail-h: calc(100cqh - var(--strip) - var(--pad) - 2 * var(--bw) - 2 * var(--wb) - var(--room-y));
+  --avail-w: calc(100cqw - 2 * var(--pad) - 2 * var(--bw) - 2 * var(--wb) - var(--room-x));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--pad) var(--pad) 0;
+  background: var(--paper);
+  border: var(--bw) solid var(--ink);
+  border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px;
+  box-shadow:
+    inset 0 -5px 0 rgba(58, 35, 64, 0.06),
+    0 6px 0 var(--ink),
+    var(--shadow-soft);
+  transform: rotate(var(--tilt));
+  transition: transform 620ms var(--ease-bounce);
+}
+.level[data-level="blur"] .blur-frame.is-revealed { --tilt: 1.4deg; }
+/* After the reveal the bottom strip grows (room for a 2-line answer); set in the same
+   layout pass as the dock swap so the FLIP animation hides the resize */
+.level[data-level="blur"] .blur-frame.is-labeled { --strip: clamp(36px, 10cqh, 52px); }
+
+/* Photo window: fixed portrait 9:16, sized by whichever axis is tighter (height on phones) */
+.level[data-level="blur"] .blur-win {
+  --blur-dur: 700ms;
+  position: relative;
+  flex: none;
+  /* the size below is the photo itself (border outside it), so the photo is exactly 9:16 */
+  box-sizing: content-box;
+  width: min(var(--avail-w), var(--avail-h) * var(--ratio));
+  height: min(var(--avail-h), var(--avail-w) / var(--ratio));
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--pink-100);
+  border: var(--wb) solid var(--ink);
+  border-radius: 8px 10px 7px 11px / 10px 7px 11px 8px;
+}
+.level[data-level="blur"] .blur-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  /* real phone photos are 3:4 / 2:3 / 9:16: keep the faces (upper middle) inside the crop */
+  object-position: 50% 30%;
+  transition:
+    filter var(--blur-dur) var(--ease-out),
+    top var(--blur-dur) var(--ease-out),
+    left var(--blur-dur) var(--ease-out),
+    width var(--blur-dur) var(--ease-out),
+    height var(--blur-dur) var(--ease-out);
+}
+/* Reveal: radius drops fast at first and slowly near 0, so the eye sees an even sharpening */
+.level[data-level="blur"] .blur-frame.is-revealing .blur-img { transition-timing-function: cubic-bezier(0.25, 0.6, 0.35, 1); }
+.level[data-level="blur"] .blur-img.is-instant { transition: none; }
+/* Missing file: show the readable fallback box, never blurred */
+.level[data-level="blur"] .blur-img.img-missing {
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  filter: none !important;
+  /* break the file path where needed, but never split "Không tìm thấy ảnh" mid-word */
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Reveal flash + glossy sweep */
+.level[data-level="blur"] .blur-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, #fff 0 22%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0) 80%);
+  opacity: 0;
+}
+.level[data-level="blur"] .blur-shine {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 70%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.78) 48%, rgba(255, 255, 255, 0.25) 58%, rgba(255, 255, 255, 0) 80%);
+  transform: translateX(-120%) skewX(-8deg);
+  opacity: 0;
+}
+.level[data-level="blur"] .blur-frame.is-flash .blur-flash { animation: blur-flash 720ms ease-out both; }
+.level[data-level="blur"] .blur-frame.is-flash .blur-shine { animation: blur-shine 950ms var(--ease-out) 80ms both; }
+@keyframes blur-flash {
+  0% { opacity: 0; }
+  22% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+@keyframes blur-shine {
+  0% { opacity: 1; transform: translateX(-120%) skewX(-8deg); }
+  100% { opacity: 1; transform: translateX(190%) skewX(-8deg); }
+}
+
+/* Bottom strip of the polaroid: "? ? ?" then the answer */
+.level[data-level="blur"] .blur-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--strip);
+  /* never let a long answer widen the polaroid: contribute 0 to its intrinsic width,
+     then fill whatever width the photo gives it */
+  width: 0;
+  min-width: 100%;
+  padding: 0 1px 1px 3px;
+}
+.level[data-level="blur"] .blur-strip__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  /* the clip box gets extra room for stacked Vietnamese marks (Ẫ, Ở, Ễ) without changing the layout height */
+  padding: 0.32em 0 0.22em;
+  margin: -0.32em 0 -0.22em;
+  font-family: var(--font-display);
+  font-size: clamp(12px, 4.4cqh, 18px);
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  color: var(--pink-400);
+}
+.level[data-level="blur"] .blur-strip.is-revealed .blur-strip__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  font-family: var(--font-body);
+  font-weight: 800;
+  /* two lines always fit in the strip; room for stacked marks above line 1 only, so a clamped
+     3rd line can never peek out under line 2 */
+  padding: 0.3em 0 0;
+  margin: -0.3em 0 0;
+  /* Baloo 2: tallest mark 1.03em above the baseline, deepest descender 0.23em below. At this
+     line-height a clamped 3rd line pokes <=0.14em into line 2's box; trimming the bottom 0.1em
+     hides it and never touches a real descender of line 2. */
+  clip-path: inset(0 0 0.1em 0);
+  font-size: clamp(12px, calc((var(--strip) - 4px) / 2.5), 18px);
+  line-height: 1.22;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+.level[data-level="blur"] .blur-strip__heart {
+  flex: none;
+  display: grid;
+  width: clamp(14px, 4.8cqh, 22px);
+  color: var(--pink-400);
+  transition: transform 420ms var(--ease-bounce);
+}
+.level[data-level="blur"] .blur-strip__heart svg { width: 100%; height: auto; display: block; }
+.level[data-level="blur"] .blur-strip.is-revealed .blur-strip__heart { transform: scale(1.25) rotate(-10deg); }
+
+/* Progress chip, stuck on the corner like a sticker */
+.level[data-level="blur"] .blur-chip {
+  position: absolute;
+  top: -17px;
+  left: -16px;
+  z-index: 3;
+  gap: 4px;
+  padding: 3px 11px 4px 8px;
+  background: var(--paper);
+  font-size: 15px;
+  white-space: nowrap;
+  transform: rotate(-6deg);
+}
+.level[data-level="blur"] .blur-chip__icon { display: grid; width: 19px; height: 19px; color: var(--pink-500); }
+.level[data-level="blur"] .blur-chip__icon svg { width: 100%; height: 100%; }
+.level[data-level="blur"] .blur-chip__label { white-space: nowrap; }
+.level[data-level="blur"] .blur-chip__num { display: inline-flex; }
+
+/* Sparkles that pop around the frame on reveal */
+.level[data-level="blur"] .blur-spark {
+  position: absolute;
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0);
+}
+.level[data-level="blur"] .blur-spark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.level[data-level="blur"] .blur-spark path { fill: var(--butter-400); stroke: var(--ink); stroke-width: 1.8; stroke-linejoin: round; }
+.level[data-level="blur"] .blur-spark--0 { top: -18px; right: -18px; }
+.level[data-level="blur"] .blur-spark--1 { left: -20px; bottom: calc(var(--strip) + 6px); width: 24px; height: 24px; }
+.level[data-level="blur"] .blur-spark--2 { right: -22px; top: 42%; width: 20px; height: 20px; }
+.level[data-level="blur"] .blur-spark--3 { left: 30%; bottom: -16px; width: 22px; height: 22px; }
+.level[data-level="blur"] .blur-spark--1 path,
+.level[data-level="blur"] .blur-spark--3 path { fill: var(--paper); }
+.level[data-level="blur"] .blur-frame.is-flash .blur-spark { animation: blur-spark 1100ms var(--ease-out) both; }
+.level[data-level="blur"] .blur-frame.is-flash .blur-spark--1 { animation-delay: 90ms; }
+.level[data-level="blur"] .blur-frame.is-flash .blur-spark--2 { animation-delay: 170ms; }
+.level[data-level="blur"] .blur-frame.is-flash .blur-spark--3 { animation-delay: 240ms; }
+@keyframes blur-spark {
+  0% { opacity: 0; transform: scale(0) rotate(-40deg); }
+  30% { opacity: 1; transform: scale(1.25) rotate(8deg); }
+  55% { opacity: 1; transform: scale(0.95) rotate(0); }
+  100% { opacity: 0; transform: scale(0.6) rotate(20deg); }
+}
+
+/* ---------- Mascot + speech bubble (question, then caption) ---------- */
+.level[data-level="blur"] .blur-ask {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 2px;
+}
+.level[data-level="blur"] .blur-mascot { flex: none; }
+.level[data-level="blur"] .blur-bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 14px 10px;
+  background: var(--paper);
+  border: var(--stroke-md) solid var(--ink);
+  border-radius: var(--r-wobble-sm);
+  box-shadow: inset 0 -4px 0 rgba(58, 35, 64, 0.06), 0 4px 0 var(--ink);
+}
+.level[data-level="blur"] .blur-bubble::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  margin-top: -9px;
+  background: var(--paper);
+  border-left: var(--stroke-md) solid var(--ink);
+  border-bottom: var(--stroke-md) solid var(--ink);
+  border-radius: 0 0 0 4px;
+  transform: rotate(45deg);
+}
+.level[data-level="blur"] .blur-bubble__text {
+  margin: 0;
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.25;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* ---------- Dock: answers, then the "next" button (same slot) ---------- */
+.level[data-level="blur"] .blur-dock {
+  flex: none;
+  display: grid;
+  padding-bottom: 5px;
+}
+.level[data-level="blur"] .blur-layer { grid-area: 1 / 1; min-width: 0; }
+.level[data-level="blur"] .blur-layer--done { display: flex; justify-content: center; padding-bottom: 2px; }
+.level[data-level="blur"] .blur-next { max-width: 340px; }
+/* disabled right after the first press (no double tap / double sound); keep its colours */
+.level[data-level="blur"] .blur-next:disabled { filter: none; }
+.level[data-level="blur"] .choice.blur-kbd {
+  transform: translateY(5px);
+  box-shadow: inset 0 -3px 0 rgba(58, 35, 64, 0.07), 0 0 0 var(--ink);
+  transition-duration: 60ms;
+}
+.level[data-level="blur"] .choice.is-correct .choice__key svg { width: 20px; height: 20px; }
+
+.level[data-level="blur"] .blur-empty {
+  margin: auto;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+  font-weight: 800;
+}
+.level[data-level="blur"] .blur-empty p { margin: 0; }
+
+/* ---------- Roomy screens (desktop / tall phones) ---------- */
+@container (min-height: 700px) {
+  .level[data-level="blur"] .blur { --blur-mascot-size: 62px; }
+  .level[data-level="blur"] .blur-bubble__text { font-size: 20px; }
+}
+
+/* ---------- Short screens (small phones with browser bars) ---------- */
+@container (max-height: 520px) {
+  .level[data-level="blur"] .blur { --blur-mascot-size: 34px; --blur-gap: 7px; }
+  .level[data-level="blur"] .blur-ask { gap: 10px; }
+  .level[data-level="blur"] .blur-bubble { padding: 3px 11px 5px; border-width: var(--stroke-sm); box-shadow: 0 3px 0 var(--ink); }
+  .level[data-level="blur"] .blur-bubble::before { border-width: var(--stroke-sm); width: 13px; height: 13px; margin-top: -8px; left: -9px; }
+  .level[data-level="blur"] .blur-bubble__text { font-size: 15px; }
+  .level[data-level="blur"] .blur-choices { gap: 7px; }
+  .level[data-level="blur"] .choice {
+    min-height: 44px;
+    padding: 3px 12px 5px 7px;
+    gap: 10px;
+    font-size: 16px;
+    box-shadow: inset 0 -4px 0 rgba(58, 35, 64, 0.07), 0 4px 0 var(--ink);
+  }
+  .level[data-level="blur"] .choice__key { width: 28px; height: 28px; font-size: 13px; }
+  .level[data-level="blur"] .choice__key svg,
+  .level[data-level="blur"] .choice.is-correct .choice__key svg { width: 17px; height: 17px; }
+  .level[data-level="blur"] .choice:active:not(:disabled),
+  .level[data-level="blur"] .choice.blur-kbd { transform: translateY(4px); }
+  .level[data-level="blur"] .blur-next { min-height: 54px; font-size: 20px; }
+}
+
+/* ---------- Short or wide screens: mascot + bubble beside the photo ----------
+   A portrait 9:16 frame is limited by height. When the level area is short for its width
+   (small phones with browser bars, laptop windows), the empty space beside the frame takes the
+   mascot and its bubble, so the photo gets the whole row height. Tall screens keep the column
+   (.blur-top is display: contents there, its two children act as rows of .blur). */
+.level[data-level="blur"] .blur-top { display: contents; }
+@container (min-aspect-ratio: 4 / 5) {
+  .level[data-level="blur"] .blur { --blur-mascot-size: 48px; }
+  .level[data-level="blur"] .blur-top {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 2.4cqw, 14px);
+  }
+  .level[data-level="blur"] .blur-top > .blur-stage { align-self: stretch; min-width: 0; min-height: 0; }
+  .level[data-level="blur"] .blur-top > .blur-ask {
+    flex: none;
+    width: clamp(136px, 41cqw, 220px);
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 13px;
+    padding: 0 0 4px;
+  }
+  .level[data-level="blur"] .blur-top .blur-bubble { flex: none; width: 100%; padding-inline: 10px; }
+  /* tail on the bottom edge, pointing down at the mascot */
+  .level[data-level="blur"] .blur-top .blur-bubble::before {
+    top: auto;
+    left: 50%;
+    bottom: -10px;
+    width: 14px;
+    height: 14px;
+    margin: 0 0 0 -7px;
+    transform: rotate(-45deg);
+  }
+  .level[data-level="blur"] .blur-top .blur-bubble__text {
+    text-align: center;
+    /* long captions never push the bubble out of the row */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 8;
+    line-clamp: 8;
+    overflow: hidden;
+  }
+}
+
+/* ---------- Short photo stage: trim the polaroid chrome so the photo keeps its room ---------- */
+@container (max-height: 250px) {
+  .level[data-level="blur"] .blur-frame { --strip: 20px; --pad: 5px; --bw: 3.5px; --wb: 2.5px; --room-y: 24px; --room-x: 30px; box-shadow: 0 4px 0 var(--ink), var(--shadow-soft); }
+  .level[data-level="blur"] .blur-chip { top: -12px; left: -12px; gap: 3px; padding: 1px 8px 2px 5px; font-size: 12.5px; border-width: var(--stroke-sm); box-shadow: 0 3px 0 var(--ink); }
+  .level[data-level="blur"] .blur-chip__icon { width: 15px; height: 15px; }
+  .level[data-level="blur"] .blur-strip__text { font-size: 11px; }
+  .level[data-level="blur"] .blur-strip__heart { width: 13px; }
+  .level[data-level="blur"] .blur-spark { width: 22px; height: 22px; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .level[data-level="blur"] .blur-frame,
+  .level[data-level="blur"] .blur-strip__heart { transition: none; }
+  .level[data-level="blur"] .blur-shine,
+  .level[data-level="blur"] .blur-spark { display: none; }
+  .level[data-level="blur"] .blur-frame.is-flash .blur-flash { animation-duration: 400ms; }
+}

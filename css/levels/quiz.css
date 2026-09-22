@@ -1,0 +1,338 @@
+/* =====================================================================
+   Màn 1 · Câu đố kỉ niệm (key: quiz)
+   Mọi selector đều nằm dưới .level[data-level="quiz"].
+   ===================================================================== */
+
+.level[data-level="quiz"] .quiz {
+  --quiz-mascot: clamp(48px, 13cqh, 76px);
+  --quiz-gap: clamp(10px, 2.4cqh, 18px);
+  --quiz-slide: 36px;
+  --quiz-in-dur: 320ms;
+  --quiz-out-dur: 200ms;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 470px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ---------- Tiến độ: chip "Câu 1/3" + 3 chấm + linh vật ---------- */
+.level[data-level="quiz"] .quiz-top {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 4px 10px 2px;
+  pointer-events: none;
+}
+.level[data-level="quiz"] .quiz-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.level[data-level="quiz"] .quiz-chip {
+  gap: 0;
+  padding: 4px 14px 5px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.level[data-level="quiz"] .quiz-chip__n { display: inline-flex; margin-left: 0.28em; color: var(--pink-600); }
+.level[data-level="quiz"] .quiz-chip__of { color: var(--ink-soft); }
+
+.level[data-level="quiz"] .quiz-dots { display: flex; align-items: center; gap: 7px; }
+.level[data-level="quiz"] .quiz-dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--muted);
+  border: var(--stroke-sm) solid var(--ink);
+  box-shadow: inset 0 -3px 0 rgba(58, 35, 64, 0.1), 0 3px 0 var(--ink);
+  color: #fff;
+  transition: background-color 260ms ease;
+}
+.level[data-level="quiz"] .quiz-dot svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0;
+  transform: scale(0.3) rotate(-30deg);
+  transition: opacity 200ms ease, transform 360ms var(--ease-bounce);
+}
+.level[data-level="quiz"] .quiz-dot.is-current {
+  background: var(--pink-300);
+  animation: quiz-dot-pulse 1.5s var(--ease-in-out) infinite;
+}
+.level[data-level="quiz"] .quiz-dot.is-done { background: var(--mint-400); animation: none; }
+.level[data-level="quiz"] .quiz-dot.is-done svg { opacity: 1; transform: none; }
+.level[data-level="quiz"] .quiz-dot.is-done.quiz-dot-pop { animation: quiz-dot-pop 520ms var(--ease-bounce); }
+/* Nhiều câu (> 5): chấm nhỏ gọn, không đè lên linh vật */
+.level[data-level="quiz"] .quiz-dots.is-compact { gap: 4px; }
+.level[data-level="quiz"] .quiz-dots.is-compact .quiz-dot { width: 14px; height: 14px; border-width: 2.5px; box-shadow: 0 2px 0 var(--ink); }
+.level[data-level="quiz"] .quiz-dots.is-compact .quiz-dot svg { display: none; }
+@keyframes quiz-dot-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+@keyframes quiz-dot-pop {
+  0% { transform: scale(0.6); }
+  55% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+.level[data-level="quiz"] .quiz-mascot-wrap {
+  flex: none;
+  margin: 0 clamp(14px, 6cqw, 30px) -18px 0;
+  transform-origin: 50% 100%;
+}
+.level[data-level="quiz"] .quiz-mascot { filter: drop-shadow(0 4px 0 rgba(58, 35, 64, 0.12)); }
+
+/* ---------- Vùng câu hỏi (chỉ phần này cuộn nếu câu quá dài) ---------- */
+.level[data-level="quiz"] .quiz-scroll {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin: 0 -12px;
+  padding: 0 12px 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.level[data-level="quiz"] .quiz-scroll::-webkit-scrollbar { display: none; }
+.level[data-level="quiz"] .quiz-scroll.is-fade-top {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 22px);
+  mask-image: linear-gradient(to bottom, transparent 0, black 22px);
+}
+.level[data-level="quiz"] .quiz-scroll.is-fade-bottom {
+  -webkit-mask-image: linear-gradient(to top, transparent 0, black 26px);
+  mask-image: linear-gradient(to top, transparent 0, black 26px);
+}
+.level[data-level="quiz"] .quiz-scroll.is-fade-top.is-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 22px, black calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, black 22px, black calc(100% - 26px), transparent 100%);
+}
+
+.level[data-level="quiz"] .quiz-card {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 3cqw, 16px);
+  min-height: clamp(84px, 20cqh, 124px);
+  padding: clamp(12px, 3.2cqh, 22px) clamp(16px, 5cqw, 24px) clamp(14px, 3.6cqh, 24px) clamp(12px, 3.4cqw, 18px);
+  background: #fff;
+  /* bóng mềm gọn hơn .panel để không bị cắt ở mép vùng cuộn */
+  box-shadow:
+    inset 0 -6px 0 rgba(58, 35, 64, 0.06),
+    inset 0 4px 0 #fff,
+    0 var(--lip) 0 var(--ink),
+    0 12px 12px -4px rgba(58, 35, 64, 0.16);
+}
+.level[data-level="quiz"] .quiz-card__badge {
+  flex: none;
+  width: clamp(44px, 13cqw, 60px);
+  aspect-ratio: 1;
+  transform: rotate(-8deg);
+}
+.level[data-level="quiz"] .quiz-card__badge svg { width: 100%; height: 100%; display: block; }
+.level[data-level="quiz"] .quiz-q {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(18px, min(6cqw, 4.7cqh), 24px);
+  line-height: 1.28;
+  color: var(--ink);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.level[data-level="quiz"] .quiz-stage { margin-top: var(--quiz-gap); }
+.level[data-level="quiz"] .quiz-choices { gap: clamp(8px, 1.9cqh, 14px); }
+.level[data-level="quiz"] .choice {
+  position: relative;
+  min-height: clamp(46px, 10.6cqh, 64px);
+  font-size: clamp(16px, 4.6cqw, 20px);
+  overflow-wrap: anywhere;
+}
+.level[data-level="quiz"] .choice__key { transition: background-color 220ms ease, color 220ms ease, transform 200ms var(--ease-bounce); }
+
+/* Chạm là lún xuống ngay (kể cả iOS) + nhấn phím trên máy tính */
+.level[data-level="quiz"] .choice.quiz-press:not(:disabled) {
+  transform: translateY(5px);
+  box-shadow: inset 0 -3px 0 rgba(58, 35, 64, 0.07), 0 0 0 var(--ink);
+  transition-duration: 60ms;
+}
+@media (hover: hover) {
+  .level[data-level="quiz"] .choice:hover:not(:disabled) .choice__key {
+    background: var(--pink-200);
+    transform: rotate(-8deg) scale(1.06);
+  }
+}
+
+/* Sai */
+.level[data-level="quiz"] .choice.is-wrong .choice__text {
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+  text-decoration-color: var(--coral-400);
+}
+.level[data-level="quiz"] .choice.is-wrong .choice__text { color: var(--ink-2); }
+.level[data-level="quiz"] .choice__key.quiz-key-pop svg { animation: quiz-key-pop 420ms var(--ease-bounce) both; }
+@keyframes quiz-key-pop {
+  0% { transform: scale(0.2) rotate(-40deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* Đúng */
+.level[data-level="quiz"] .choice.is-correct {
+  box-shadow: inset 0 -5px 0 rgba(30, 150, 118, 0.18), 0 5px 0 var(--ink), 0 0 0 5px var(--mint-100);
+}
+.level[data-level="quiz"] .choice.is-correct .choice__key { transform: rotate(-6deg); }
+.level[data-level="quiz"] .quiz-check {
+  --check-y-amount: 10px;
+  --check-blur-from: 4px;
+  display: grid;
+  color: #fff;
+}
+.level[data-level="quiz"] .choice.quiz-pop { animation: quiz-pop 480ms var(--ease-bounce); }
+@keyframes quiz-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.03) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.level[data-level="quiz"] .choice.quiz-fade {
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 180ms ease, transform 180ms var(--ease-out);
+}
+
+/* ---------- Lời nhắn sau câu đúng ---------- */
+.level[data-level="quiz"] .quiz-note {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2.8cqh, 20px);
+  margin-top: calc(var(--quiz-gap) + 8px);
+}
+.level[data-level="quiz"] .quiz-bubble {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: clamp(10px, 2.2cqh, 14px) 16px clamp(12px, 2.4cqh, 16px) 12px;
+  background: var(--pink-50);
+  border: var(--stroke-md) solid var(--ink);
+  border-radius: var(--r-wobble);
+  box-shadow: inset 0 -5px 0 rgba(58, 35, 64, 0.05), inset 0 3px 0 #fff, 0 5px 0 var(--ink);
+}
+.level[data-level="quiz"] .quiz-bubble::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 28px;
+  width: 18px;
+  height: 18px;
+  background: var(--pink-50);
+  border-top: var(--stroke-md) solid var(--ink);
+  border-left: var(--stroke-md) solid var(--ink);
+  border-radius: 5px 0 0 0;
+  transform: rotate(45deg);
+}
+.level[data-level="quiz"] .quiz-bubble__heart {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-top: 1px;
+  transform: rotate(-10deg);
+}
+.level[data-level="quiz"] .quiz-bubble__heart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.level[data-level="quiz"] .quiz-bubble__heart path { fill: var(--pink-400); stroke: var(--ink); stroke-width: 2.4; stroke-linejoin: round; }
+.level[data-level="quiz"] .quiz-bubble__text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-weight: 800;
+  font-size: clamp(16px, 4.4cqw, 19px);
+  line-height: 1.35;
+  color: var(--ink-2);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.level[data-level="quiz"] .quiz-note.is-in { animation: quiz-note-in var(--panel-open-dur) var(--panel-ease) 90ms backwards; }
+@keyframes quiz-note-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); filter: blur(var(--panel-blur)); }
+}
+
+/* ---------- Chuyển câu (page slide) ---------- */
+.level[data-level="quiz"] .quiz-page.is-in .quiz-card {
+  animation: quiz-in var(--quiz-in-dur) var(--page-slide-ease) backwards;
+}
+.level[data-level="quiz"] .quiz-page.is-in .choice {
+  animation: quiz-choice-in 440ms var(--ease-bounce) backwards;
+  animation-delay: calc(70ms + var(--i, 0) * 55ms);
+}
+.level[data-level="quiz"] .quiz-page.is-out {
+  animation: quiz-out var(--quiz-out-dur) var(--page-fade-ease) forwards;
+  pointer-events: none;
+}
+.level[data-level="quiz"] .quiz-page.is-hello .choice {
+  animation: quiz-hello 560ms var(--ease-bounce) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes quiz-hello {
+  0% { transform: none; }
+  40% { transform: translateY(-4px) scale(1.03) rotate(-0.6deg); }
+  100% { transform: none; }
+}
+@keyframes quiz-in {
+  from { opacity: 0; transform: translateX(var(--quiz-slide)) rotate(1deg); filter: blur(var(--page-blur)); }
+}
+@keyframes quiz-choice-in {
+  from { opacity: 0; transform: translateX(var(--quiz-slide)) scale(0.96); }
+}
+@keyframes quiz-out {
+  to { opacity: 0; transform: translateX(calc(var(--quiz-slide) * -1)); filter: blur(var(--page-blur)); }
+}
+
+/* ---------- Màn hình thấp (điện thoại nhỏ có thanh Safari) ---------- */
+@container (max-height: 460px) {
+  .level[data-level="quiz"] .quiz { --quiz-mascot: 46px; --quiz-gap: 10px; }
+  .level[data-level="quiz"] .quiz-top { padding-bottom: 8px; }
+  .level[data-level="quiz"] .quiz-mascot-wrap { margin-bottom: -15px; }
+  .level[data-level="quiz"] .quiz-chip { font-size: 15px; padding: 3px 12px 4px; }
+  .level[data-level="quiz"] .quiz-dot { width: 20px; height: 20px; }
+  .level[data-level="quiz"] .quiz-card { min-height: 0; padding: 10px 14px 13px 10px; gap: 9px; }
+  .level[data-level="quiz"] .quiz-card__badge { width: 38px; }
+  .level[data-level="quiz"] .quiz-q { line-height: 1.24; }
+  .level[data-level="quiz"] .quiz-scroll { padding-bottom: 10px; }
+  .level[data-level="quiz"] .quiz-choices { gap: 8px; }
+  .level[data-level="quiz"] .choice { min-height: 44px; padding-top: 5px; padding-bottom: 7px; }
+  .level[data-level="quiz"] .choice__key { width: 30px; height: 30px; font-size: 14px; }
+  .level[data-level="quiz"] .choice__key svg { width: 17px; height: 17px; }
+  .level[data-level="quiz"] .quiz-bubble__heart { width: 24px; height: 24px; }
+  .level[data-level="quiz"] .quiz-next { min-height: 52px; font-size: 19px; }
+}
+
+/* ---------- Giảm chuyển động ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .level[data-level="quiz"] .quiz-dot,
+  .level[data-level="quiz"] .quiz-dot svg,
+  .level[data-level="quiz"] .quiz-page,
+  .level[data-level="quiz"] .quiz-page .quiz-card,
+  .level[data-level="quiz"] .quiz-page .choice,
+  .level[data-level="quiz"] .quiz-note,
+  .level[data-level="quiz"] .choice__key svg,
+  .level[data-level="quiz"] .mascot--jump { animation: none !important; }
+  .level[data-level="quiz"] .choice,
+  .level[data-level="quiz"] .choice__key,
+  .level[data-level="quiz"] .quiz-top,
+  .level[data-level="quiz"] .quiz-dot svg { transition: none !important; }
+}

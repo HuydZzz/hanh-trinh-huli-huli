@@ -1,0 +1,535 @@
+/* =====================================================================
+   Màn 3 · Lật thẻ (key: memory)
+   Thẻ dọc 9:16 luôn vừa khít vùng chơi: bề ngang thẻ (--card) tính từ CẢ
+   bề ngang lẫn bề cao của .memory-level (container "memory-board", đơn vị
+   cqw/cqh), cao = ngang x 16/9. JS (memory.js, chooseLayout) chọn giữa
+   4 cột x 5 hàng / 5 x 4 và hàng mascot + chip ở trên / cột bên trái,
+   cách nào cho thẻ to nhất, qua data-shape và data-hud.
+   Cặp đúng biến mất khỏi bàn (.is-removed) nhưng ô vẫn giữ chỗ.
+   ===================================================================== */
+
+.memory-level {
+  --memory-flip-dur: 360ms;
+  --memory-flip-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
+  /* hàng trên (mascot + chip) và khoảng cách tới bàn thẻ */
+  --top-h: clamp(36px, 7cqh, 46px);
+  --top-gap: clamp(4px, 1.6cqh, 12px);
+  /* bề ngang cột mascot + chip khi đặt bên trái bàn thẻ (data-hud="side") */
+  --side-w: 74px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--top-gap);
+  container-type: size;
+  container-name: memory-board;
+}
+
+/* ---------- Hàng trên: mascot + chip đếm cặp ---------- */
+.memory-top {
+  flex: none;
+  height: var(--top-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.memory-mascot { margin-top: -4px; }
+
+/* Vùng chơi thấp mà còn dư bề ngang (điện thoại nhỏ có thanh Safari, laptop thấp):
+   mascot + chip dồn thành cột bên trái để bàn thẻ được cao hơn */
+.memory-level[data-hud="side"] {
+  --top-h: clamp(40px, 12cqh, 58px);
+  flex-direction: row;
+}
+.memory-level[data-hud="side"] .memory-top {
+  width: var(--side-w);
+  height: auto;
+  flex-direction: column;
+  gap: 8px;
+}
+.memory-level[data-hud="side"] .memory-mascot { margin-top: 0; }
+.memory-level[data-hud="side"] .memory-count {
+  flex-direction: column;
+  gap: 1px;
+  max-width: 100%;
+  padding: 5px 8px 6px;
+  border-radius: var(--r-wobble-sm);
+}
+.memory-level[data-hud="side"] .memory-count .life { margin: 0; }
+/* chữ "Cặp" ẩn khỏi mắt nhưng trình đọc màn hình vẫn đọc */
+.memory-level[data-hud="side"] .memory-count__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.memory-mascot.is-bounce { animation: memory-mascot-bounce 560ms var(--ease-bounce); }
+@keyframes memory-mascot-bounce {
+  0% { scale: 1; translate: 0 0; }
+  30% { scale: 1.14 0.86; translate: 0 2px; }
+  60% { scale: 0.94 1.08; translate: 0 -6px; }
+  100% { scale: 1; translate: 0 0; }
+}
+
+.memory-count {
+  gap: 5px;
+  padding: 3px 14px 5px 8px;
+  font-size: 16px;
+}
+.memory-count .life { width: 26px; height: 26px; margin: -2px 0 -2px; }
+.memory-count__label { font-weight: 800; color: var(--ink-2); }
+.memory-count__val {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 17px;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+.memory-count__num { min-width: 0.7em; justify-content: flex-end; color: var(--pink-600); }
+.memory-count.is-bump { animation: memory-bump 460ms var(--ease-bounce); }
+.memory-count.is-bump .life { animation: memory-beat 460ms var(--ease-out); }
+@keyframes memory-bump {
+  0% { scale: 1; }
+  35% { scale: 1.14; rotate: -3deg; }
+  100% { scale: 1; rotate: 0deg; }
+}
+@keyframes memory-beat {
+  0% { scale: 1; }
+  30% { scale: 1.35; }
+  55% { scale: 0.92; }
+  100% { scale: 1; }
+}
+
+/* ---------- Bàn thẻ ----------
+   Bề ngang thẻ = min(bề ngang còn lại chia số cột,
+                      (bề cao còn lại chia số hàng) x 9/16, 120px).
+   Hàng có thêm "đế" (--lip) nên khoảng cách hàng = --gap + --lip. */
+.memory-grid {
+  --cols: var(--tc, 4);
+  --rows: var(--tr, 5);
+  --gap: clamp(5px, 2.1cqmin, 14px);
+  --lip: clamp(3px, 1.05cqmin, 6px);
+  --pad-x: 8px;
+  --pad-t: 7px;
+  --avail-w: calc(100cqw - 2 * var(--pad-x));
+  --avail-h: calc(100cqh - var(--top-h) - var(--top-gap) - var(--pad-t) - var(--lip));
+  --card: min(
+    calc((var(--avail-w) - (var(--cols) - 1) * var(--gap)) / var(--cols)),
+    calc((var(--avail-h) - (var(--rows) - 1) * (var(--gap) + var(--lip))) / var(--rows) * 9 / 16),
+    120px
+  );
+  --card-h: calc(var(--card) * 16 / 9);
+  position: relative;
+  flex: none;
+  /* flex-wrap (không dùng grid) để hàng cuối thiếu thẻ (số ảnh lẻ) vẫn nằm giữa.
+     Bề ngang vừa đúng --cols thẻ (+1px chống làm tròn) nên mỗi hàng luôn đủ --cols thẻ. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  width: calc(var(--cols) * var(--card) + (var(--cols) - 1) * var(--gap) + 1px);
+  column-gap: var(--gap);
+  row-gap: calc(var(--gap) + var(--lip));
+  padding: var(--pad-t) 0 var(--lip);
+}
+.memory-grid[data-shape="wide"] { --cols: var(--wc, 5); --rows: var(--wr, 4); }
+/* Mascot + chip ở cột trái: bề cao dành hết cho bàn thẻ, bề ngang bớt đi một cột */
+.memory-level[data-hud="side"] .memory-grid {
+  --avail-w: calc(100cqw - 2 * var(--pad-x) - var(--side-w) - var(--top-gap));
+  --avail-h: calc(100cqh - var(--pad-t) - var(--lip));
+}
+/* Dự phòng khi JS chưa chọn bố cục: thẻ dọc thì 5 x 4 thắng từ tỉ lệ khoảng 0.56 */
+@container memory-board (min-aspect-ratio: 9/16) {
+  .memory-grid:not([data-shape]) { --cols: var(--wc, 5); --rows: var(--wr, 4); }
+}
+.memory-grid:focus { outline: none; }
+
+/* ---------- Thẻ ---------- */
+.memory-card {
+  --rad: min(calc(var(--card) * 0.2), 22px);
+  --bw: clamp(2.5px, calc(var(--card) * 0.042), 4px);
+  --lip-now: var(--lip);
+  position: relative;
+  flex: none;
+  width: var(--card);
+  height: var(--card-h);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rad);
+  background: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-card:focus-visible { outline: none; }
+.memory-grid.is-playing .memory-card:not(.is-open) { cursor: pointer; }
+
+/* Ô trống sau khi cặp biến mất: viền nét đứt mờ giữ chỗ, bàn không bị "thủng" */
+.memory-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: max(2px, calc(var(--card) * 0.032)) dashed rgba(58, 35, 64, 0.2);
+  border-radius: var(--rad);
+  background: rgba(255, 255, 255, 0.26);
+  opacity: 0;
+  scale: 0.86;
+  pointer-events: none;
+}
+.memory-card.is-removed { z-index: 1; pointer-events: none; cursor: default; }
+.memory-card.is-removed::before {
+  opacity: 1;
+  scale: 1;
+  transition: opacity 280ms var(--ease-out) 200ms, scale 420ms var(--ease-bounce) 200ms;
+}
+/* Pop-out: phồng lên một chút rồi thu nhỏ + mờ dần (thời lượng khớp VANISH_MS trong memory.js) */
+.memory-card.is-removed .memory-card__lift {
+  pointer-events: none;
+  animation: memory-vanish 420ms linear forwards;
+}
+@keyframes memory-vanish {
+  0% { scale: 1.04; rotate: 0deg; opacity: 1; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  26% { scale: 1.14; rotate: -4deg; opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35); }
+  100% { scale: 0.12; rotate: 14deg; opacity: 0; visibility: hidden; }
+}
+
+.memory-card__lift {
+  position: absolute;
+  inset: 0;
+  -webkit-perspective: calc(var(--card) * 5);
+  perspective: calc(var(--card) * 5);
+  transition: translate 160ms var(--ease-out);
+}
+/* Vòng focus bàn phím (bơ + viền mực, bọc cả đế thẻ) */
+.memory-card__lift::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: -6px -6px calc(-6px - var(--lip)) -6px;
+  border: 3.5px solid var(--butter-400);
+  border-radius: calc(var(--rad) + 6px);
+  box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 2px var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+.memory-card:focus-visible .memory-card__lift::after { opacity: 1; }
+
+.memory-card__inner {
+  position: absolute;
+  inset: 0;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform var(--memory-flip-dur) var(--memory-flip-ease);
+}
+.memory-card.is-open .memory-card__inner { transform: rotateY(180deg); }
+
+.memory-card__face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border: var(--bw) solid var(--ink);
+  border-radius:
+    calc(var(--rad) * 0.9) calc(var(--rad) * 1.1) calc(var(--rad) * 0.85) calc(var(--rad) * 1.15) /
+    calc(var(--rad) * 1.1) calc(var(--rad) * 0.85) calc(var(--rad) * 1.15) calc(var(--rad) * 0.9);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition: box-shadow 140ms var(--ease-out), background-color 200ms ease;
+}
+
+/* Mặt sau: ô hồng chunky, chấm bi, khung chỉ khâu, trái tim trắng */
+.memory-card__back {
+  display: grid;
+  place-items: center;
+  -webkit-transform: rotateY(0deg);
+  transform: rotateY(0deg);
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.28) 0 16%, transparent 19%) center / calc(var(--card) / 4.4) calc(var(--card) / 4.4),
+    linear-gradient(180deg, var(--pink-300) 0%, var(--pink-400) 52%, var(--pink-500) 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -4px 0 rgba(58, 35, 64, 0.16),
+    0 var(--lip-now) 0 var(--ink),
+    0 calc(var(--lip-now) + 5px) 10px rgba(58, 35, 64, 0.16);
+}
+.memory-card__back::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--card) * 0.09);
+  border: max(1.5px, calc(var(--card) * 0.022)) dashed rgba(255, 255, 255, 0.62);
+  border-radius: calc(var(--rad) * 0.62);
+  pointer-events: none;
+}
+.memory-card__back::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--card) * 0.13);
+  width: calc(var(--card) * 0.44);
+  top: calc(var(--card) * 0.05);
+  height: calc(var(--card) * 0.11);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.15));
+  pointer-events: none;
+}
+/* Safari: con có lớp vẽ riêng (filter, ảnh) có thể "lộ" xuyên qua mặt đang quay lưng,
+   nên ẩn mặt lưng cho cả các lớp con này */
+.memory-card__heart,
+.memory-card__art-wrap,
+.memory-card__num {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.memory-card__heart {
+  position: relative;
+  width: 60%;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+  rotate: var(--tilt, 0deg);
+  filter: drop-shadow(0 max(1.5px, calc(var(--card) * 0.03)) 0 rgba(58, 35, 64, 0.35));
+}
+.memory-heart__body {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: clamp(2px, calc(var(--card) * 0.04), 3.6px);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.memory-heart__shine { fill: var(--pink-100); }
+
+/* Ảnh mặt sau tuỳ chỉnh (CONFIG.art.cardBack) */
+.memory-card__back.has-art { background: var(--pink-400); }
+.memory-card__back.has-art::before,
+.memory-card__back.has-art::after { display: none; }
+.memory-card__art-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.memory-card__art { width: 100%; height: 100%; object-fit: cover; }
+
+/* Mặt trước: ảnh trong khung trắng */
+.memory-card__front {
+  -webkit-transform: rotateY(180deg);
+  transform: rotateY(180deg);
+  padding: clamp(3px, calc(var(--card) * 0.065), 7px);
+  background-color: #fff;
+  box-shadow:
+    inset 0 -3px 0 rgba(58, 35, 64, 0.08),
+    0 var(--lip-now) 0 var(--ink),
+    0 calc(var(--lip-now) + 5px) 10px rgba(58, 35, 64, 0.16);
+}
+.memory-card__photo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: calc(var(--rad) * 0.55);
+  background: var(--pink-50);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.memory-card__photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px rgba(58, 35, 64, 0.14);
+  pointer-events: none;
+}
+.memory-card__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 30%;
+}
+
+/* Thiếu ảnh: vẫn hiện ô báo lỗi của UI.img + số cặp để vẫn chơi được */
+.memory-card .img-missing {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  padding: 6% 6% 5%;
+  font-size: clamp(6px, calc(var(--card) * 0.085), 10px);
+  line-height: 1.2;
+  word-break: normal;
+}
+.memory-card .img-missing span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* chừa chỗ cho dấu tiếng Việt chồng (ả, ỗ) không bị cắt ở mép trên */
+  padding-top: 0.14em;
+}
+.memory-card__num {
+  position: absolute;
+  inset: 0 0 18%;
+  display: none;
+  place-items: center;
+  font-size: calc(var(--card) * 0.34);
+  line-height: 1;
+  pointer-events: none;
+}
+.memory-card.is-missing .memory-card__num { display: grid; }
+
+/* Sai cặp: khung đỏ san hô */
+.memory-card.is-wrong .memory-card__front { background-color: var(--coral-300); }
+
+/* Ghép đúng (một nhịp trước khi biến mất): khung mint phát sáng + huy hiệu tick */
+.memory-card.is-matched .memory-card__front {
+  background-color: var(--mint-300);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -3px 0 rgba(58, 35, 64, 0.12),
+    0 var(--lip-now) 0 var(--ink),
+    0 0 0 calc(var(--bw) + 1px) var(--mint-100),
+    0 0 calc(var(--card) * 0.32) calc(var(--card) * 0.08) var(--mint-300);
+}
+.memory-card__badge {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--card) * -0.13);
+  right: calc(var(--card) * -0.13);
+  width: max(20px, calc(var(--card) * 0.4));
+  height: max(20px, calc(var(--card) * 0.4));
+  display: grid;
+  place-items: center;
+  border: var(--bw) solid var(--ink);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--mint-200), var(--mint-400) 58%, var(--mint-500));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 2px 0 var(--ink);
+  color: #fff;
+  opacity: 0;
+  scale: 0.2;
+  transition: opacity 120ms ease, scale 180ms var(--ease-out);
+  pointer-events: none;
+}
+.memory-card.is-matched .memory-card__badge {
+  opacity: 1;
+  scale: 1;
+  transition: opacity 160ms ease 60ms, scale 520ms var(--ease-bounce) 60ms;
+}
+.memory-card__check {
+  --check-y-amount: 6px;
+  --check-blur-from: 3px;
+  width: 64%;
+  height: 64%;
+}
+.memory-card__check svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1.5px 0 var(--ink));
+}
+
+/* Hover (máy tính): thẻ úp nhấc lên, đế dày thêm */
+@media (hover: hover) {
+  .memory-grid.is-playing .memory-card:not(.is-open):hover .memory-card__lift { translate: 0 -3px; }
+  .memory-grid.is-playing .memory-card:not(.is-open):hover { --lip-now: calc(var(--lip) + 3px); }
+  .memory-grid.is-playing .memory-card:not(.is-open):hover .memory-card__heart { animation: memory-beat 520ms var(--ease-out); }
+}
+
+/* ---------- Micro-animations (dùng scale/translate/rotate riêng để không đè transform) ---------- */
+.memory-card__lift.is-squash { animation: memory-squash 300ms var(--ease-out); }
+/* Nhịp "trúng rồi": nảy lên và dừng ở 1.04, memory-vanish nối tiếp từ đúng cỡ đó */
+.memory-card__lift.is-match { z-index: 1; animation: memory-match 450ms var(--ease-out) forwards; }
+.memory-card__lift.is-hop { animation: memory-hop 520ms var(--ease-out) var(--d, 0ms); }
+.memory-card:has(.is-match) { z-index: 1; }
+
+@keyframes memory-squash {
+  0% { scale: 1; }
+  30% { scale: 0.9; }
+  65% { scale: 1.05; }
+  100% { scale: 1; }
+}
+@keyframes memory-match {
+  0% { scale: 1; rotate: 0deg; }
+  32% { scale: 1.16; rotate: -5deg; }
+  62% { scale: 0.98; rotate: 2deg; }
+  100% { scale: 1.04; rotate: 0deg; }
+}
+@keyframes memory-hop {
+  0%, 100% { translate: 0 0; scale: 1; }
+  40% { translate: 0 -6%; scale: 1.05; }
+  70% { translate: 0 1%; scale: 0.98; }
+}
+
+/* ---------- Dọn sạch bàn: ô trống gợn sóng + trái tim lớn giữa bàn ---------- */
+.memory-grid.is-done .memory-card.is-removed::before {
+  animation: memory-ghost 620ms var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes memory-ghost {
+  0%, 100% { scale: 1; background-color: rgba(255, 255, 255, 0.26); border-color: rgba(58, 35, 64, 0.2); }
+  40% { scale: 1.08; background-color: var(--mint-100); border-color: var(--mint-500); }
+}
+.memory-cheer {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.memory-cheer__heart {
+  width: clamp(72px, 34cqmin, 150px);
+  aspect-ratio: 1;
+  animation:
+    memory-cheer-pop 620ms var(--ease-bounce) both,
+    memory-cheer-beat 900ms var(--ease-in-out) 700ms infinite;
+}
+.memory-cheer__heart .life { width: 100%; height: 100%; }
+.memory-cheer__heart .life__body { stroke-width: 1.6; }
+.memory-cheer__text {
+  font-size: clamp(20px, 7cqmin, 32px);
+  line-height: 1.1;
+  white-space: nowrap;
+  color: #fff;
+  rotate: -4deg;
+  animation: memory-cheer-pop 560ms var(--ease-bounce) 140ms both;
+}
+@keyframes memory-cheer-pop {
+  0% { opacity: 0; scale: 0.2; translate: 0 18%; }
+  60% { opacity: 1; scale: 1.12; translate: 0 -4%; }
+  100% { opacity: 1; scale: 1; translate: 0 0; }
+}
+@keyframes memory-cheer-beat {
+  0%, 100% { scale: 1; }
+  18% { scale: 1.1; }
+  36% { scale: 0.97; }
+  54% { scale: 1.05; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level[data-level="memory"] .memory-card__inner { transition-duration: 1ms; }
+  .level[data-level="memory"] .memory-card__lift,
+  .level[data-level="memory"] .memory-card__heart,
+  .level[data-level="memory"] .memory-count,
+  .level[data-level="memory"] .memory-count .life,
+  .level[data-level="memory"] .memory-mascot,
+  .level[data-level="memory"] .memory-card::before,
+  .level[data-level="memory"] .memory-cheer__heart,
+  .level[data-level="memory"] .memory-cheer__text { animation: none !important; transition: none !important; }
+  .level[data-level="memory"] .memory-card__badge { transition: none; }
+  /* Không có pop-out: thẻ ẩn ngay, chỉ còn ô trống */
+  .level[data-level="memory"] .memory-card.is-removed .memory-card__lift { visibility: hidden; }
+}

@@ -1,0 +1,592 @@
+/* =====================================================================
+   finale.css · Màn cuối (Hoàn thành nhiệm vụ + trình chiếu kỉ niệm)
+   Mọi selector đều nằm dưới .finale-* hoặc #screen-finale
+   ===================================================================== */
+
+/* The engine's screen-in keyframes leave a transform filled on .screen.is-active, which makes the
+   screen the containing block of position:fixed children, so the sky would be trapped inside the
+   520px column (below the HUD) instead of covering the viewport. Fade this screen in with opacity
+   only; duration/easing still come from base.css (including its reduced-motion override). */
+#screen-finale.is-active { animation-name: finale-screen-in; }
+@keyframes finale-screen-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Container: pages are sized with cqw/cqh of this box ------------------ */
+.finale {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  container: finale / size;
+}
+.finale-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.finale-page.is-entering { animation: finale-page-in 340ms var(--page-slide-ease) both; }
+.finale-page.is-leaving { animation: finale-page-out 200ms var(--page-fade-ease) both; pointer-events: none; }
+@keyframes finale-page-in {
+  from { opacity: 0; translate: 0 16px; filter: blur(var(--page-blur)); }
+  to { opacity: 1; translate: 0 0; filter: blur(0); }
+}
+@keyframes finale-page-out {
+  from { opacity: 1; }
+  to { opacity: 0; translate: 0 -10px; filter: blur(var(--page-blur)); }
+}
+
+/* Background sky (full viewport, behind everything on this screen) ------ */
+.finale-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.finale-sky__layer { position: absolute; inset: 0; transition: opacity 800ms ease; }
+.finale-sky__layer--rise,
+.finale-sky.is-rise .finale-sky__layer--fall { opacity: 0; }
+.finale-sky.is-rise .finale-sky__layer--rise { opacity: 1; }
+.finale-sky__heart {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--s);
+  height: var(--s);
+  color: var(--c);
+  opacity: 0;
+  animation: finale-fall var(--d) linear var(--delay) infinite;
+  will-change: transform;
+}
+.finale-sky__layer--rise .finale-sky__heart { animation-name: finale-rise; }
+.finale-sky__heart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+@keyframes finale-fall {
+  0% { opacity: 0; transform: translate3d(0, -8vh, 0) rotate(var(--r)); }
+  8% { opacity: var(--o); }
+  50% { transform: translate3d(var(--sway), 50vh, 0) rotate(calc(var(--r) * -1)); }
+  90% { opacity: var(--o); }
+  100% { opacity: 0; transform: translate3d(0, 108vh, 0) rotate(var(--r)); }
+}
+@keyframes finale-rise {
+  0% { opacity: 0; transform: translate3d(0, 108vh, 0) rotate(var(--r)) scale(0.8); }
+  10% { opacity: var(--o); }
+  50% { transform: translate3d(var(--sway), 50vh, 0) rotate(calc(var(--r) * -1)) scale(1); }
+  88% { opacity: var(--o); }
+  100% { opacity: 0; transform: translate3d(0, -8vh, 0) rotate(var(--r)) scale(1.1); }
+}
+.finale-sky__spark {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  color: var(--paper);
+  opacity: 0;
+  animation: finale-twinkle var(--d) ease-in-out var(--delay) infinite;
+}
+.finale-sky__spark:nth-child(3n) { color: var(--butter-300); }
+.finale-sky__spark svg { display: block; width: 100%; height: 100%; }
+@keyframes finale-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  50% { opacity: 0.95; transform: scale(1) rotate(45deg); }
+}
+
+/* =====================================================================
+   Part 1 · Hoàn thành nhiệm vụ!
+   ===================================================================== */
+.finale-done {
+  --finale-mascot: clamp(64px, 12.5cqh, 116px);
+  gap: clamp(8px, 2.1cqh, 22px);
+  padding: 2px 2px calc(var(--lip) + clamp(4px, 1.2cqh, 12px));
+}
+/* safe vertical centering: auto margins collapse to 0 when space runs out */
+.finale-done > :first-child { margin-top: auto; }
+.finale-done > :last-child { margin-bottom: auto; }
+
+.finale-hero {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+}
+.finale-mascot { display: grid; justify-items: center; }
+.finale-mascot__hop { transform-origin: 50% 100%; animation: finale-hop 1.3s var(--ease-in-out) 1.2s infinite; }
+.finale-mascot__shadow {
+  width: 58%;
+  height: 9px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: rgba(58, 35, 64, 0.16);
+  animation: finale-shadow 1.3s var(--ease-in-out) 1.2s infinite;
+}
+@keyframes finale-hop {
+  0%, 100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+  12% { transform: translateY(0) scale(1.12, 0.86) rotate(0deg); }
+  38% { transform: translateY(-30%) scale(0.93, 1.09) rotate(-5deg); }
+  58% { transform: translateY(-32%) scale(0.98, 1.02) rotate(5deg); }
+  80% { transform: translateY(0) scale(1.09, 0.9) rotate(0deg); }
+  90% { transform: translateY(0) scale(0.97, 1.03) rotate(0deg); }
+}
+@keyframes finale-shadow {
+  0%, 12%, 80%, 100% { transform: scaleX(1); opacity: 1; }
+  48% { transform: scaleX(0.55); opacity: 0.45; }
+}
+
+.finale-title {
+  margin: 0;
+  /* --fit (set by finale.js) shrinks a long custom title so its widest line fits */
+  font-size: calc(clamp(28px, min(10.2cqw, 6.4cqh), 54px) * var(--fit, 1));
+  line-height: 1.12;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+/* lines normally fit whole; if a very long title still does not fit at the smallest --fit, it wraps */
+.finale-title__line { display: block; }
+.finale-title.is-measure .finale-title__line { white-space: nowrap; }
+.finale-title__line.is-alt { color: var(--butter-300); font-size: 1.06em; }
+.finale-title__word { display: inline-block; overflow-wrap: anywhere; }
+.finale-done.is-enter .finale-title__word {
+  animation: finale-word 680ms var(--ease-bounce) both;
+  animation-delay: calc(var(--i) * 130ms + 40ms);
+}
+@keyframes finale-word {
+  0% { opacity: 0; transform: translateY(70%) scale(0.2) rotate(-16deg); }
+  55% { opacity: 1; transform: translateY(-10%) scale(1.18) rotate(5deg); }
+  78% { transform: translateY(2%) scale(0.96) rotate(-2deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* Score row: total stars + lives left (same chips as the HUD) */
+.finale-score {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 12px;
+}
+.finale-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 15px 2px 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: var(--stroke-md) solid var(--ink);
+  border-radius: 20px 24px 19px 25px / 24px 19px 25px 20px;
+  box-shadow: 0 4px 0 var(--ink);
+}
+.finale-chip .finale-chip__star { width: 34px; height: 34px; transform: rotate(-10deg); }
+.finale-chip__num { display: inline-flex; align-items: baseline; font-family: var(--font-display); color: var(--ink); line-height: 1; }
+.finale-chip__big { font-size: 26px; }
+.finale-chip__max { margin-left: 2px; font-size: 16px; color: var(--ink-soft); }
+.finale-lives { height: 48px; }
+
+/* "Tụi mình đã bên nhau 1.069 ngày" badge */
+.finale-days {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(100%, 420px);
+  padding: 6px 18px 9px 10px;
+  background: linear-gradient(180deg, var(--butter-200), var(--butter-300) 55%, var(--butter-400));
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--r-wobble-sm);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.6), inset 0 -4px 0 rgba(58, 35, 64, 0.08), 0 5px 0 var(--ink);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: clamp(14px, 4.4cqw, 18px);
+  line-height: 1.25;
+  rotate: 1.5deg;
+}
+.finale-days__icon { flex: none; display: grid; }
+.finale-days__icon .life { width: 34px; height: 34px; }
+.finale-days__text { text-wrap: balance; }
+.finale-days__num {
+  margin: 0 0.14em;
+  font-size: 1.5em;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--pink-400);
+  white-space: nowrap;
+}
+
+/* Letter card (lined paper, washi tape, signature) */
+.finale-letter {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: min(100%, 440px);
+  display: flex;
+  flex-direction: column;
+  padding: clamp(18px, 3.2cqh, 28px) clamp(16px, 5cqw, 28px) clamp(10px, 2cqh, 16px);
+  background: var(--cream);
+  rotate: -1.2deg;
+}
+.finale-letter__tape {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 96px;
+  height: 28px;
+  translate: -50% 0;
+  rotate: -4deg;
+  border: 2.5px solid var(--ink);
+  border-radius: 4px 6px 4px 7px;
+  background: repeating-linear-gradient(135deg, var(--mint-200) 0 7px, var(--mint-300) 7px 14px);
+  box-shadow: 0 2px 0 rgba(58, 35, 64, 0.15);
+}
+.finale-letter__text {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  white-space: pre-line;
+  text-wrap: pretty;
+  font-weight: 700;
+  font-size: clamp(15px, min(4.5cqw, 2.7cqh), 19px);
+  line-height: 1.62;
+  color: var(--ink-2);
+  /* one pink rule under every line of text (1.62em = 1 line) */
+  background-image: repeating-linear-gradient(180deg, transparent 0 calc(1.62em - 2px), var(--pink-200) calc(1.62em - 2px) 1.62em);
+  background-attachment: local;
+  scrollbar-width: thin;
+}
+.finale-letter__text.is-more {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 2.4em), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 2.4em), transparent);
+}
+.finale-letter__sign {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 100%;
+  margin: 6px 2px 0 auto;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 6cqw, 26px);
+  line-height: 1.2;
+  color: var(--pink-500);
+  rotate: -4deg;
+}
+.finale-letter__heart { display: grid; }
+.finale-letter__heart .life { width: 1.1em; height: 1.1em; }
+
+/* Big CTA */
+.finale-cta-wrap { flex: none; width: min(100%, 360px); padding: 0 4px; }
+.finale-cta.btn--lg {
+  min-height: clamp(60px, 9.4cqh, 78px);
+  padding-left: 16px;
+  padding-right: 16px;
+  font-size: clamp(22px, 7.4cqw, 32px);
+}
+
+/* Entrance choreography (.is-enter first time, .is-soft when coming back) */
+/* before the entrance starts (the gift wipe is still receding): keep the animated pieces hidden */
+.finale-done.is-pre .finale-anim,
+.finale-done.is-pre .finale-title__word { opacity: 0; }
+.finale-done.is-enter .finale-anim { animation: finale-pop 620ms var(--ease-bounce) var(--d, 0ms) both; }
+.finale-done.is-enter .finale-letter { animation-name: finale-unfold; animation-duration: 700ms; }
+.finale-done.is-enter .finale-cta-wrap {
+  animation:
+    finale-pop 620ms var(--ease-bounce) var(--d, 0ms) both,
+    finale-breathe 2.4s ease-in-out calc(var(--d, 0ms) + 900ms) infinite;
+}
+.finale-done.is-soft .finale-letter { animation: finale-wiggle 640ms var(--ease-out) both; }
+.finale-done.is-soft .finale-cta-wrap {
+  animation:
+    finale-pop 520ms var(--ease-bounce) 120ms both,
+    finale-breathe 2.4s ease-in-out 900ms infinite;
+}
+@keyframes finale-pop {
+  0% { opacity: 0; scale: 0.5; translate: 0 26px; }
+  60% { opacity: 1; scale: 1.05; translate: 0 -4px; }
+  100% { opacity: 1; scale: 1; translate: 0 0; }
+}
+@keyframes finale-unfold {
+  0% { opacity: 0; scale: 0.72 0.2; translate: 0 44px; }
+  55% { opacity: 1; scale: 1.03 1.05; translate: 0 -4px; }
+  78% { scale: 0.99 0.98; }
+  100% { opacity: 1; scale: 1; translate: 0 0; }
+}
+@keyframes finale-wiggle {
+  0% { scale: 0.94; }
+  35% { scale: 1.03; rotate: 1deg; }
+  65% { rotate: -2.6deg; }
+  100% { scale: 1; rotate: -1.2deg; }
+}
+@keyframes finale-breathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.04; }
+}
+
+/* Short screens (small phones with browser bars): mascot beside the title */
+@container finale (max-height: 640px) {
+  .finale-done { --finale-mascot: clamp(50px, 13cqh, 78px); gap: clamp(6px, 1.8cqh, 14px); }
+  .finale-hero { flex-direction: row; gap: 4px; }
+  .finale-mascot { margin-left: -6px; }
+  .finale-title { font-size: calc(clamp(24px, min(8.6cqw, 7cqh), 40px) * var(--fit, 1)); }
+  .finale-chip,
+  .finale-lives { height: 42px; }
+  .finale-lives .life { width: 28px; height: 28px; }
+  .finale-chip .finale-chip__star { width: 29px; height: 29px; }
+  .finale-chip__big { font-size: 22px; }
+  .finale-days { padding: 4px 14px 7px 8px; }
+  .finale-days__icon .life { width: 28px; height: 28px; }
+  .finale-letter__tape { top: -12px; width: 80px; height: 22px; }
+}
+
+/* =====================================================================
+   Part 2 · Những khoảnh khắc đẹp nhất
+   ===================================================================== */
+.finale-slides {
+  align-items: stretch;
+  gap: clamp(6px, 1.6cqh, 14px);
+  padding: 2px 0 calc(var(--lip) + 2px);
+}
+.finale-slides__head { flex: none; position: relative; z-index: 3; display: flex; justify-content: center; padding-top: 6px; }
+.finale-slides__plate.plate--lg {
+  max-width: 96%;
+  padding: 5px 22px 10px;
+  font-size: clamp(17px, 5.6cqw, 26px);
+  line-height: 1.12;
+  text-align: center;
+  /* the two balanced lines hug the plate; a long custom title wraps instead of running off-screen */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.finale-slides__plate.plate--lg.is-long { font-size: clamp(14px, 4.3cqw, 21px); }
+.finale-slides.is-entering .finale-slides__plate { animation: finale-plate 560ms var(--ease-bounce) both; }
+@keyframes finale-plate {
+  0% { opacity: 0; scale: 0.4; }
+  100% { opacity: 1; scale: 1; }
+}
+.finale-stage {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  border-radius: 28px;
+  cursor: pointer;
+  /* pan-y (not manipulation): a horizontal swipe is delivered to the pointer handlers instead of
+     being claimed by the browser as a pan and cancelled */
+  touch-action: pan-y pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+}
+.finale-stage:focus { outline: none; }
+.finale-stage:focus-visible { outline: 3px dashed var(--pink-400); outline-offset: -3px; }
+.finale-stack { position: absolute; inset: 0; }
+.finale-hint {
+  flex: none;
+  margin: 0;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-2);
+  transition: opacity 400ms ease;
+}
+.finale-hint.is-gone { opacity: 0; }
+.finale-controls { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 12px; }
+.finale-ctl.btn--sm {
+  --lip: 4px;
+  min-height: 46px;
+  gap: 7px;
+  padding: 3px 15px 6px 13px;
+  font-size: clamp(12px, 3.6cqw, 15px);
+  border-width: var(--stroke-md);
+}
+.finale-ctl.btn--sm svg { width: 1.25em; height: 1.25em; }
+.finale-ctl--letter svg { color: var(--pink-400); }
+/* phones: the replay button becomes a round icon (label stays for screen readers) */
+@container finale (max-width: 459px) {
+  .finale-ctl--replay.btn--sm { width: 46px; min-height: 0; height: 46px; padding: 0 0 3px; border-radius: 50%; }
+  .finale-ctl--replay.btn--sm::before { left: 20%; right: 20%; top: 4px; }
+  .finale-ctl--replay .finale-ctl__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Short screens (small phones with browser bars): a smaller title plate and tighter gaps, so the
+   tall 9:16 photo frame gets as much of the height as possible */
+@container finale (max-height: 600px) {
+  .finale-slides { gap: 5px; }
+  .finale-slides__head { padding-top: 2px; }
+  .finale-slides__plate.plate--lg { padding: 3px 18px 7px; font-size: clamp(14px, 4.6cqw, 18px); border-width: var(--stroke-md); }
+  .finale-slides__plate.plate--lg.is-long { font-size: clamp(13px, 3.8cqw, 16px); }
+  .finale-hint { font-size: 13px; }
+}
+
+/* Polaroid ------------------------------------------------------------ */
+.finale-pola {
+  /* every frame is portrait 9:16 (width:height), whatever the photo's own ratio: the photo is
+     cover-cropped into it, so the stacked cards are all the same size */
+  --ar: 0.5625;
+  --pad: clamp(7px, 2.4cqmin, 14px);
+  --cap: clamp(34px, 9.5cqmin, 58px);
+  /* photo width: as big as the stage allows (usually the stage height is the limit) */
+  --pw: min(calc(84cqw - 2 * var(--pad) - 2 * var(--stroke-md)), calc((87cqh - var(--pad) - var(--cap) - 2 * var(--stroke-md)) * var(--ar)));
+  --t1: var(--mint-200);
+  --t2: var(--mint-300);
+  position: absolute;
+  inset: 0;
+  width: calc(var(--pw) + 2 * var(--pad) + 2 * var(--stroke-md));
+  height: calc(var(--pw) / var(--ar) + var(--pad) + var(--cap) + 2 * var(--stroke-md));
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--pad) var(--pad) 0;
+  background: var(--paper);
+  border: var(--stroke-md) solid var(--ink);
+  border-radius: 7px 9px 6px 10px / 9px 6px 10px 7px;
+  box-shadow: inset 0 -5px 0 rgba(58, 35, 64, 0.05), 0 5px 0 var(--ink), 0 16px 28px rgba(58, 35, 64, 0.2);
+  translate: var(--dx, 0px) var(--dy, 0px);
+  rotate: var(--rot, 0deg);
+  transition: filter 400ms ease;
+}
+.finale-pola.is-under { filter: brightness(0.97); }
+.finale-pola.is-deep { filter: brightness(0.93) saturate(0.9); }
+.finale-pola[data-tape="pink"] { --t1: var(--pink-100); --t2: var(--pink-200); }
+.finale-pola[data-tape="butter"] { --t1: var(--butter-200); --t2: var(--butter-300); }
+.finale-pola[data-tape="lilac"] { --t1: var(--lilac-200); --t2: var(--lilac-300); }
+.finale-pola__tape {
+  position: absolute;
+  z-index: 2;
+  top: -13px;
+  left: 50%;
+  width: min(34%, 96px);
+  height: 24px;
+  translate: -50% 0;
+  rotate: var(--tape-rot, -4deg);
+  border: 2.5px solid var(--ink);
+  border-radius: 3px 5px 3px 6px;
+  background: repeating-linear-gradient(135deg, var(--t1) 0 7px, var(--t2) 7px 14px);
+  opacity: 0.94;
+}
+.finale-pola__photo {
+  position: relative;
+  flex: none;
+  width: 100%;
+  aspect-ratio: var(--ar);
+  overflow: hidden;
+  border: 2.5px solid var(--ink);
+  border-radius: 3px;
+  background: var(--pink-50);
+}
+.finale-pola__media,
+.finale-pola__photo .img-missing { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* phone photos are 3:4, 2:3 or 9:16 and faces usually sit in the upper middle */
+.finale-pola__media { object-position: 50% 30%; }
+/* keep the "missing photo" note centred in the tall frame */
+.finale-pola__photo .img-missing { display: grid; place-items: center; }
+.finale-pola__cap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px 3px;
+  font-weight: 800;
+  font-size: clamp(13px, 3.8cqmin, 20px);
+  line-height: 1.15;
+  text-align: center;
+  color: var(--ink);
+  overflow: hidden;
+}
+.finale-pola__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.finale-pola__empty { display: grid; place-items: center; width: 100%; height: 100%; background: var(--pink-100); }
+.finale-pola__empty .mascot { width: 52%; height: auto; aspect-ratio: 1; }
+.finale-pola__doodle { display: grid; place-items: center; rotate: var(--mark-rot, -10deg); }
+.finale-pola__doodle .life { width: clamp(15px, calc(var(--cap) * 0.42), 26px); height: auto; aspect-ratio: 1; }
+.finale-pola__doodle .life svg { filter: drop-shadow(0 1.5px 0 rgba(58, 35, 64, 0.18)); }
+/* No captions in the whole show: a slim bottom margin (still a bit deeper than the sides, like a
+   real instant photo) with just the little heart mark, instead of an empty caption strip */
+.finale-stack.is-slim .finale-pola { --cap: clamp(22px, 6.8cqmin, 40px); }
+.finale-stack.is-slim .finale-pola__cap { padding: 0 8px 1px; }
+.finale-stack.is-slim .finale-pola__doodle .life { width: clamp(15px, calc(var(--cap) * 0.64), 24px); }
+
+/* Drop onto the stack with a bounce */
+.finale-pola.is-dropping { animation: finale-drop 760ms both; }
+.finale-pola.is-dropping .finale-pola__photo > * { animation: finale-develop 1400ms ease-out both; }
+@keyframes finale-drop {
+  0% {
+    opacity: 0;
+    translate: var(--dx, 0px) calc(var(--dy, 0px) - 58cqh);
+    rotate: calc(var(--rot, 0deg) * -2.2);
+    scale: 1.2;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
+  }
+  14% { opacity: 1; }
+  56% {
+    translate: var(--dx, 0px) var(--dy, 0px);
+    rotate: var(--rot, 0deg);
+    scale: 1.035 0.96;
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  }
+  74% { translate: var(--dx, 0px) calc(var(--dy, 0px) - 10px); rotate: calc(var(--rot, 0deg) * 0.75); scale: 0.99 1.015; animation-timing-function: ease-in; }
+  88% { translate: var(--dx, 0px) var(--dy, 0px); scale: 1.01 0.99; }
+  100% { opacity: 1; translate: var(--dx, 0px) var(--dy, 0px); rotate: var(--rot, 0deg); scale: 1; }
+}
+@keyframes finale-develop {
+  0% { filter: brightness(1.45) saturate(0.25) contrast(0.85); }
+  100% { filter: brightness(1) saturate(1) contrast(1); }
+}
+.finale-pola.is-jolt { animation: finale-jolt 380ms var(--ease-out); }
+@keyframes finale-jolt {
+  0% { translate: var(--dx, 0px) var(--dy, 0px); }
+  30% { translate: var(--dx, 0px) calc(var(--dy, 0px) + 5px); rotate: calc(var(--rot, 0deg) + 1.2deg); }
+  100% { translate: var(--dx, 0px) var(--dy, 0px); rotate: var(--rot, 0deg); }
+}
+.finale-pola.is-nudge { animation: finale-nudge 560ms var(--ease-out); }
+@keyframes finale-nudge {
+  0% { scale: 1; }
+  25% { scale: 1.05; rotate: calc(var(--rot, 0deg) - 3deg); }
+  55% { rotate: calc(var(--rot, 0deg) + 2.4deg); }
+  80% { scale: 0.99; rotate: calc(var(--rot, 0deg) - 1deg); }
+  100% { scale: 1; rotate: var(--rot, 0deg); }
+}
+.finale-pola.is-in { animation: finale-fade 260ms ease both; }
+@keyframes finale-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Reduced motion: no bouncing, no falling, content shows immediately */
+@media (prefers-reduced-motion: reduce) {
+  .finale-sky { display: none; }
+  .finale-page.is-entering,
+  .finale-page.is-leaving,
+  .finale-done .finale-anim,
+  .finale-done .finale-title__word,
+  .finale-done .finale-letter,
+  .finale-done .finale-cta-wrap,
+  .finale-mascot__hop,
+  .finale-mascot__shadow,
+  .finale-slides__plate,
+  .finale-pola.is-dropping,
+  .finale-pola.is-dropping .finale-pola__photo > *,
+  .finale-pola.is-jolt,
+  .finale-pola.is-nudge { animation: none !important; }
+  .finale-pola.is-in { animation: finale-fade 200ms ease both !important; }
+  .finale-hint { transition: none; }
+}

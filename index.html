@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffcfe0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Huli Huli" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Hành trình Huli Huli</title>
+    <meta name="description" content="Một món quà nhỏ cho 20/10" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Hành trình Huli Huli" />
+    <meta property="og:description" content="Một món quà nhỏ cho 20/10. Mở ra chơi thử nha!" />
+    <meta property="og:image" content="assets/cover.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sigmar&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/levels/quiz.css" />
+    <link rel="stylesheet" href="css/levels/blur.css" />
+    <link rel="stylesheet" href="css/levels/memory.css" />
+    <link rel="stylesheet" href="css/levels/puzzle.css" />
+    <link rel="stylesheet" href="css/levels/hearts.css" />
+    <link rel="stylesheet" href="css/finale.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="scene" id="scene" aria-hidden="true"></div>
+      <div class="stage">
+        <header class="hud" id="hud" hidden></header>
+        <main class="screens">
+          <section class="screen" id="screen-lock" aria-label="Mở khoá"></section>
+          <section class="screen" id="screen-map" aria-label="Bản đồ"></section>
+          <section class="screen" id="screen-level" aria-label="Màn chơi"></section>
+          <section class="screen" id="screen-finale" aria-label="Món quà"></section>
+        </main>
+      </div>
+    </div>
+    <div id="modal-root"></div>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div class="rotate-hint" role="alert">
+      <p class="t-stroke">Xoay dọc điện thoại để chơi nha</p>
+    </div>
+
+    <!-- Nội dung game: chỉ cần sửa file này -->
+    <script src="js/config.js"></script>
+    <!-- Engine -->
+    <script src="js/core.js"></script>
+    <!-- Nhân vật: hai bạn (thay nhân vật trái tim trong core.js) -->
+    <script src="js/mascot.js"></script>
+    <script src="js/ui.js"></script>
+    <script>window.Levels = window.Levels || {};</script>
+    <script src="js/levels/quiz.js"></script>
+    <script src="js/levels/blur.js"></script>
+    <script src="js/levels/memory.js"></script>
+    <script src="js/levels/puzzle.js"></script>
+    <script src="js/levels/hearts.js"></script>
+    <script src="js/finale.js"></script>
+    <script src="js/game.js"></script>
+  </body>
+</html>
