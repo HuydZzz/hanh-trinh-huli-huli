@@ -7,9 +7,9 @@ node_modules/
 
 # Ảnh gốc (còn GPS, dung lượng lớn): KHÔNG đẩy lên GitHub.
 # Game chỉ dùng bản đã xử lý trong assets/photos/.
-Image/
-State/
-Music/
+/Image/
+/State/
+/Music/
 
 # Công cụ test, ảnh chụp màn hình, bản nháp (chỉ để trên máy)
 _dev/
