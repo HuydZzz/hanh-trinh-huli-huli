@@ -13,3 +13,5 @@ node_modules/
 
 # Công cụ test, ảnh chụp màn hình, bản nháp (chỉ để trên máy)
 _dev/
+.vercel
+.env*
