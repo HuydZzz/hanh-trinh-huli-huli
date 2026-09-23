@@ -1,7 +1,7 @@
 _dev/
-Image/
-State/
-Music/
+/Image/
+/State/
+/Music/
 .git
 node_modules
 *.log
