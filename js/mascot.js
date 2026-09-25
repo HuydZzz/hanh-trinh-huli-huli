@@ -218,13 +218,43 @@
     `<path d="M17.8 50.6Q17.8 46.4 21 45.8M41.6 50.6Q41.6 46.4 44.8 45.8" stroke="#fff" stroke-width="1.8" fill="none" opacity=".85"/>`;
 
   // --- HER (centre x = 91.5) ---
-  // long wavy hair falling in front of her shoulders (left curtain, mirrored for the right)
-  const CURTAIN_L = "M72.4 41.6C63.8 46.2 61.2 53.4 62.6 59.8C63.6 64.8 59.2 68.4 59.6 74.2C60 79.8 64.6 81.6 62.8 86.8C61.6 90.4 63.8 94.8 68.2 95C70.8 95.1 72.4 93.6 72.9 92.4C74.6 95.2 79.6 95.2 80.7 91.4C81.5 88.6 79.2 86.6 79.6 83.4C80 80.2 77 78.4 75.8 74.6C74.6 70.6 76.6 66 75 60.4C74 56.2 75.4 49.8 72.4 41.6Z";
-  const WAVE_L = "M66.4 61.8C67.6 67.2 63.4 70.8 64 76.4C64.4 80.6 68 82.8 66.8 88";
-  const mirror = (d) => d.replace(/([MLCQHV ])?(-?\d*\.?\d+) (-?\d*\.?\d+)/g, (m, c, x, y) => `${c || ""}${+(183 - x).toFixed(2)} ${y}`);
-  const herHair =
-    `<path d="${CURTAIN_L}" fill="${HAIR_HER}" ${S(3.4)}/><path d="${mirror(CURTAIN_L)}" fill="${HAIR_HER}" ${S(3.4)}/>` +
-    `<path d="${WAVE_L}" ${LINE(2.2, HAIR_HER_HI)}/><path d="${mirror(WAVE_L)}" ${LINE(2.2, HAIR_HER_HI)}/>`;
+  // Tóc layer: khối sau dày đuôi gợn sóng, ngôi lệch, mái dài hai bên ôm mặt
+  const HER_BACK =
+    "M91.5 27.6C105.6 27.6 116.2 36.4 117.2 50.6C117.8 58.4 115.4 62.4 116.6 68.6C118 75.6 115 80.4 116 88" +
+    "C116.6 92.4 114.6 96.6 112 100.2Q110.4 103.4 107.4 101Q105 104.6 101.6 101.4Q98.4 105.2 95.2 101.6" +
+    "Q91.5 105.6 87.8 101.6Q84.6 105.2 81.4 101.4Q78 104.6 75.6 101Q72.6 103.4 71 100.2" +
+    "C68.4 96.6 66.4 92.4 67 88C68 80.4 65 75.6 66.4 68.6C67.6 62.4 65.2 58.4 65.8 50.6C66.8 36.4 77.4 27.6 91.5 27.6Z";
+  // chỏm tóc ôm đỉnh đầu, cùng tông với tóc (bóng chân tóc vẽ riêng cho đỡ bị 2 tông)
+  const HER_CAP =
+    "M66.8 60C65.2 42.4 76.4 29.8 91.5 29.8C106.6 29.8 117.8 42.4 116.2 60C115 51.6 110.8 45.8 104 42.8" +
+    "C99 40.6 93.8 39.6 88.4 40.2C82.4 40.8 76.4 43 72.2 47.2C69.2 50.2 67.6 55 66.8 60Z";
+  // mái rẽ ngôi lệch: hai lọn dày vuốt từ ngôi xuống hai bên thái dương
+  const BANG_L =
+    "M88.8 36.4C81.4 37.4 74.8 41.6 70.9 48.6C68.8 52.4 68 57 68.6 61.4Q71.8 62.4 73 58" +
+    "C74.2 52.8 76.4 48.6 80.6 45.6C83.8 43.4 87 42.2 90.2 42Q91.4 38.8 88.8 36.4Z";
+  const BANG_R =
+    "M90.2 36.2C98.4 36.6 106.6 40.4 111.6 47.4C113.9 50.7 115 54.6 114.9 58.6Q111.8 59.6 110.8 55.4" +
+    "C109.5 50.4 106.6 46.4 102 43.8C98.2 41.6 94 40.6 90.4 41.2Q88.6 38.6 90.2 36.2Z";
+  // lọn tóc trước ôm mặt, cắt tầng nên mép trong có bậc
+  const FRONT_L =
+    "M72.4 47.2C69.6 54.6 70.8 61 69.8 67C68.8 73 70.8 77.4 69.8 83.2C69 87.8 70.2 91.4 68.4 95.8" +
+    "C73 93 74.8 88.4 74.8 83.8C74.8 78.8 76.8 75 77.2 70C77.6 64.6 76.6 59.8 77.6 54.6C78.4 50.4 80 46.6 82 43.2Z";
+  const FRONT_R =
+    "M111.6 46C114.2 53.4 112.8 59.4 113.6 65.4C114.4 71 112.6 75.2 113.4 80.6C114 84.6 113 87.8 114.4 91.6" +
+    "C110.2 89 108.8 84.8 108.8 80.2C108.8 75.4 107.2 72 106.8 67.2C106.4 62 107.2 57.6 106.2 52.6" +
+    "C105.4 48.4 103.8 44.8 102 41.8Z";
+  const herHairBack = `<path d="${HER_BACK}" fill="${HAIR_HER}" ${S(3.4)}/>` +
+    `<path d="M104.4 44.6C108.6 52.6 106.8 60.4 108 68.4C109 75.4 107 81 108.4 89" ${LINE(2.4, HAIR_HER_HI)}/>` +
+    `<path d="M76.6 47.4C73.4 54.6 75 61.4 74 68.6" ${LINE(2.2, HAIR_HER_HI)}/>`;
+  const herHairFront =
+    `<path d="${HER_CAP}" fill="${HAIR_HER}" ${S()}/>` +
+    `<path d="M74.6 38.6C80.4 33.4 88 31 95.6 31.6C102 32.2 107.6 35 111.6 39.4C106 36.4 100 34.8 93.6 35C86.8 35.2 80.2 36.6 74.6 38.6Z" fill="${HAIR_HER_TOP}"/>` +
+    `<path d="${BANG_L}" fill="${HAIR_HER}" ${S(3.2)}/>` +
+    `<path d="${BANG_R}" fill="${HAIR_HER}" ${S(3.2)}/>` +
+    `<path d="${FRONT_L}" fill="${HAIR_HER}" ${S(3.2)}/>` +
+    `<path d="${FRONT_R}" fill="${HAIR_HER}" ${S(3.2)}/>` +
+    `<path d="M95.6 39.6Q104 42 108.8 48.4" ${LINE(2.2, HAIR_HER_HI)}/>` +
+    `<path d="M79.8 43.4Q75.6 46.6 73.6 51.4" ${LINE(2, HAIR_HER_HI)}/>`;
 
   const herBody =
     // long flowy skirt with a soft wavy hem
@@ -243,12 +273,7 @@
 
   const herHead =
     `<ellipse cx="91.5" cy="57" rx="23.8" ry="22.8" fill="${SKIN}" ${S()}/>` +
-    herHair +
-    // crown with darker roots + curtain fringe
-    `<path d="M66.8 59C65 41.4 76.2 30.2 91.5 30.2C106.8 30.2 118 41.4 116.2 59H112.8C112.2 50.4 105.2 43.6 95.4 43.4Q93.2 41 91.5 43.6Q89.8 41 87.6 43.4C77.8 43.6 70.8 50.4 70.2 59Z" fill="${HAIR_HER_TOP}" ${S()}/>` +
-    `<path d="M101.6 35.6Q108 38.6 110.6 45" ${LINE(2.2, "#9A5A3C")}/>` +
-    // soft shine on the crown (no sunglasses, per the user)
-    `<path d="M76.6 39.4Q82.4 34.4 89.4 33.6" ${LINE(2.4, "#C98D62")}/>`;
+    herHairFront;
 
   // her arms sit in front of her hair: inner arm reaches for his hand, outer arm hangs
   const herArms =
@@ -262,7 +287,7 @@
 
   const BACK =
     `<g transform="${HIM_BODY_T}">${himBody}</g><g transform="${HIM_HEAD_T}">${himHead}</g>` +
-    herBody + `<g transform="${HER_TILT}">${herHead}</g>` + herArms + hands;
+    `<g transform="${HER_TILT}">${herHairBack}</g>` + herBody + `<g transform="${HER_TILT}">${herHead}</g>` + herArms + hands;
   const FRONT = `<g transform="${HIM_HEAD_T}">${himGlasses}</g>`;
 
   function mascotSVG(mood = "idle") {
